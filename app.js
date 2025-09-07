@@ -53,46 +53,74 @@ const DENOMS = [500, 100, 50, 20, 10, 5, 1];
 // board definition (GO -> CCW)
 const BOARD = [
     { t: "go", name: "GO" },
-    { t: "prop", name: "Mediterranean Ave", price: 60, rent: 8, color: "brown" },
+    { t: "prop", name: "Mediterranean Avenue", price: 60, rent: 8, color: "brown" },
     { t: "chest", name: "Community Chest" },
-    { t: "prop", name: "Baltic Ave", price: 60, rent: 8, color: "brown" },
+    { t: "prop", name: "Baltic Avenue", price: 60, rent: 8, color: "brown" },
     { t: "tax", name: "Income Tax", amount: 200 },
     { t: "rail", name: "Reading Railroad", price: 200, rent: 25, color: "black" },
-    { t: "prop", name: "Oriental Ave", price: 100, rent: 10, color: "lblue" },
+    { t: "prop", name: "Oriental Avenue", price: 100, rent: 10, color: "lblue" },
     { t: "chance", name: "Chance" },
-    { t: "prop", name: "Vermont Ave", price: 100, rent: 10, color: "lblue" },
-    { t: "prop", name: "Connecticut Ave", price: 120, rent: 12, color: "lblue" },
+    { t: "prop", name: "Vermont Avenue", price: 100, rent: 10, color: "lblue" },
+    { t: "prop", name: "Connecticut Avenue", price: 120, rent: 12, color: "lblue" },
     { t: "jail", name: "Jail / Just Visiting" },
     { t: "prop", name: "St. Charles Place", price: 140, rent: 12, color: "pink" },
     { t: "util", name: "Electric Company", price: 150, rent: 12, color: "black" },
-    { t: "prop", name: "States Ave", price: 140, rent: 12, color: "pink" },
-    { t: "prop", name: "Virginia Ave", price: 160, rent: 14, color: "pink" },
+    { t: "prop", name: "States Avenue", price: 140, rent: 12, color: "pink" },
+    { t: "prop", name: "Virginia Avenue", price: 160, rent: 14, color: "pink" },
     { t: "rail", name: "Pennsylvania Railroad", price: 200, rent: 25, color: "black" },
     { t: "prop", name: "St. James Place", price: 180, rent: 14, color: "orange" },
     { t: "chest", name: "Community Chest" },
-    { t: "prop", name: "Tennessee Ave", price: 180, rent: 14, color: "orange" },
-    { t: "prop", name: "New York Ave", price: 200, rent: 16, color: "orange" },
+    { t: "prop", name: "Tennessee Avenue", price: 180, rent: 14, color: "orange" },
+    { t: "prop", name: "New York Avenue", price: 200, rent: 16, color: "orange" },
     { t: "free", name: "Free Parking" },
-    { t: "prop", name: "Kentucky Ave", price: 220, rent: 18, color: "red" },
+    { t: "prop", name: "Kentucky Avenue", price: 220, rent: 18, color: "red" },
     { t: "chance", name: "Chance" },
-    { t: "prop", name: "Indiana Ave", price: 220, rent: 18, color: "red" },
-    { t: "prop", name: "Illinois Ave", price: 240, rent: 20, color: "red" },
+    { t: "prop", name: "Indiana Avenue", price: 220, rent: 18, color: "red" },
+    { t: "prop", name: "Illinois Avenue", price: 240, rent: 20, color: "red" },
     { t: "rail", name: "B. & O. Railroad", price: 200, rent: 25, color: "black" },
-    { t: "prop", name: "Atlantic Ave", price: 260, rent: 22, color: "yellow" },
-    { t: "prop", name: "Ventnor Ave", price: 260, rent: 22, color: "yellow" },
+    { t: "prop", name: "Atlantic Avenue", price: 260, rent: 22, color: "yellow" },
+    { t: "prop", name: "Ventnor Avenue", price: 260, rent: 22, color: "yellow" },
     { t: "util", name: "Water Works", price: 150, rent: 12, color: "black" },
     { t: "prop", name: "Marvin Gardens", price: 280, rent: 24, color: "yellow" },
     { t: "gojail", name: "Go to Jail" },
-    { t: "prop", name: "Pacific Ave", price: 300, rent: 26, color: "green" },
-    { t: "prop", name: "North Carolina Ave", price: 300, rent: 26, color: "green" },
+    { t: "prop", name: "Pacific Avenue", price: 300, rent: 26, color: "green" },
+    { t: "prop", name: "North Carolina Avenue", price: 300, rent: 26, color: "green" },
     { t: "chest", name: "Community Chest" },
-    { t: "prop", name: "Pennsylvania Ave", price: 320, rent: 28, color: "green" },
+    { t: "prop", name: "Pennsylvania Avenue", price: 320, rent: 28, color: "green" },
     { t: "rail", name: "Short Line", price: 200, rent: 25, color: "black" },
     { t: "chance", name: "Chance" },
     { t: "prop", name: "Park Place", price: 350, rent: 35, color: "dblue" },
     { t: "tax", name: "Luxury Tax", amount: 100 },
     { t: "prop", name: "Boardwalk", price: 400, rent: 50, color: "dblue" },
 ];
+
+/* Rente standard Monopoly pentru proprietăți color
+   rents: [fără case, 1 casă, 2 case, 3 case, 4 case, hotel]
+   houseCost: cost pe casă în grup */
+const DEEDS = {
+    1: { houseCost: 50, rents: [2, 10, 30, 90, 160, 250] },
+    3: { houseCost: 50, rents: [4, 20, 60, 180, 320, 450] },
+    6: { houseCost: 50, rents: [6, 30, 90, 270, 400, 550] },
+    8: { houseCost: 50, rents: [6, 30, 90, 270, 400, 550] },
+    9: { houseCost: 50, rents: [8, 40, 100, 300, 450, 600] },
+    11: { houseCost: 100, rents: [10, 50, 150, 450, 625, 750] },
+    13: { houseCost: 100, rents: [10, 50, 150, 450, 625, 750] },
+    14: { houseCost: 100, rents: [12, 60, 180, 500, 700, 900] },
+    16: { houseCost: 100, rents: [14, 70, 200, 550, 750, 950] },
+    18: { houseCost: 100, rents: [14, 70, 200, 550, 750, 950] },
+    19: { houseCost: 100, rents: [16, 80, 220, 600, 800, 1000] },
+    21: { houseCost: 150, rents: [18, 90, 250, 700, 875, 1050] },
+    23: { houseCost: 150, rents: [18, 90, 250, 700, 875, 1050] },
+    24: { houseCost: 150, rents: [20, 100, 300, 750, 925, 1100] },
+    26: { houseCost: 150, rents: [22, 110, 330, 800, 975, 1150] },
+    27: { houseCost: 150, rents: [22, 110, 330, 800, 975, 1150] },
+    29: { houseCost: 150, rents: [24, 120, 360, 850, 1025, 1200] },
+    31: { houseCost: 200, rents: [26, 130, 390, 900, 1100, 1275] },
+    32: { houseCost: 200, rents: [26, 130, 390, 900, 1100, 1275] },
+    34: { houseCost: 200, rents: [28, 150, 450, 1000, 1200, 1400] },
+    37: { houseCost: 200, rents: [35, 175, 500, 1100, 1300, 1500] },
+    39: { houseCost: 200, rents: [50, 200, 600, 1400, 1700, 2000] },
+};
 
 // ============= STATE =============
 let channel = null;
@@ -123,26 +151,50 @@ function log(msg) {
 function escapeHtml(s) { return s.replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" }[m])); }
 function ensurePlayerColors() { state.players.forEach((p, i) => { if (!p.color) p.color = PLAYER_COLORS[i % PLAYER_COLORS.length]; }); }
 
+// nume scurte pe tablă („Park P.”, „North C. Ave”, „Reading Rail”)
+function displayNameShort(name) {
+    if (!name) return "";
+    let n = name
+        .replace(/Avenue/gi, "Ave")
+        .replace(/Railroad/gi, "Rail")
+        .replace(/Company/gi, "Co.")
+        .replace(/Water Works/gi, "Water")
+        .replace(/Electric Company/gi, "Electric")
+        .replace(/Jail \/ Just Visiting/i, "Jail")
+        .replace(/Community Chest/i, "Chest")
+        .replace(/Free Parking/i, "Free")
+        .replace(/Short Line/i, "Short Ln");
+
+    const SUF = new Set(["Ave", "Pl", "Rail", "Co.", "Water", "Electric", "Ln", "Short", "Short Ln"]);
+    let parts = n.split(/\s+/).filter(Boolean);
+    let suffix = "";
+    if (parts.length >= 2 && SUF.has(parts[parts.length - 1])) {
+        suffix = " " + parts.pop();
+    }
+    let first = parts[0] || "";
+    let second = parts[1] ? parts[1][0] + "." : "";
+
+    if (/^[A-Z]\.$/.test(first) || first.endsWith(".")) {
+        if (parts[1]) second = parts[1]; // ex: „B. &”
+    }
+    return (first + (second ? " " + second : "") + suffix).slice(0, 18);
+}
+
 // cash helpers
 function moneyBreakdown(amount) { const out = []; let left = Math.max(0, Math.floor(amount || 0)); for (const d of DENOMS) { const n = Math.floor(left / d); if (n > 0) { out.push([d, n]); left -= n * d; } } return out; }
 function billsHTML(amount) { const br = moneyBreakdown(amount); if (!br.length) return '<div class="muted">—</div>'; return `<div class="cash">${br.map(([d, n]) => `<div class="bill b${d}"><span class="val">${d}</span><span class="cnt">×${n}</span></div>`).join("")}</div>`; }
-
-// deed helpers
-function colorClass(grp) { return { brown: "c-brown", lblue: "c-lblue", pink: "c-pink", orange: "c-orange", red: "c-red", yellow: "c-yellow", green: "c-green", dblue: "c-dblue", black: "c-black" }[grp] || "c-black"; }
-function deedCardHTML(idx) { const b = BOARD[idx]; return `<div class="deed" data-idx="${idx}" title="Click: evidențiază pe tablă"><div class="deed-head ${colorClass(b.color || "black")}">${idx}. ${escapeHtml(b.name)}</div><div class="deed-body"><div class="deed-row"><span>Preț</span><span>$${b.price ?? "-"}</span></div><div class="deed-row"><span>Chirie</span><span>$${b.rent ?? "-"}</span></div><small>Grup: ${b.color || "—"}</small></div></div>`; }
 
 // dice overlay
 function showDice(d1, d2) {
     d1El.textContent = d1; d2El.textContent = d2;
     diceLayer.classList.remove("hidden");
-    // re-trigger anim (iOS/Safari)
     d1El.style.animation = "none"; d2El.style.animation = "none";
     void d1El.offsetWidth; void d2El.offsetWidth;
     d1El.style.animation = ""; d2El.style.animation = "";
     setTimeout(() => diceLayer.classList.add("hidden"), 1200);
 }
 
-// fallback polling (când Realtime e throttled)
+// fallback polling (în caz că Realtime e throttled în in-app browsers)
 function startFallbackSync() {
     clearInterval(syncInterval);
     if (!roomCode) return;
@@ -153,12 +205,9 @@ function startFallbackSync() {
                 const serverState = data.state;
                 const localSig = JSON.stringify({ t: state.turnIdx, p: state.players?.length, r: Object.keys(state.props || {}).length });
                 const remoteSig = JSON.stringify({ t: serverState.turnIdx, p: serverState.players?.length, r: Object.keys(serverState.props || {}).length });
-                if (localSig !== remoteSig) {
-                    state = serverState;
-                    renderAll();
-                }
+                if (localSig !== remoteSig) { state = serverState; renderAll(); }
             }
-        } catch (e) {/* noop */ }
+        } catch (e) { }
     }, 2500);
 }
 
@@ -220,7 +269,7 @@ function renderBoard() {
         const content = document.createElement("div");
         content.className = "content";
         content.innerHTML = `
-      <div class="name">${i}. ${escapeHtml(t.name)}</div>
+      <div class="name">${i}. ${escapeHtml(displayNameShort(t.name))}</div>
       ${t.t === "prop" ? `<div class="price">$${t.price} • Rent ${t.rent}</div>` : ""}
       ${t.t === "tax" ? `<div class="price">Taxă $${t.amount}</div>` : ""}
       ${t.t === "go" ? `<div class="price">+200 la trecere</div>` : ""}
@@ -256,15 +305,40 @@ function renderInspector() {
     const t = BOARD[selectedIdx];
     const ownerId = state.props[selectedIdx] || null;
     const owner = ownerId ? state.players.find(p => p.id === ownerId) : null;
+
+    const deed = DEEDS[selectedIdx];
+    let detailsHTML = "";
+    if (t.t === "prop" && deed) {
+        const [base, h1, h2, h3, h4, hot] = deed.rents;
+        detailsHTML = `
+      <div style="margin-top:6px;border:1px dashed #223549;border-radius:8px;padding:8px">
+        <div style="font-weight:700;margin-bottom:6px">Card proprietate</div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:4px;font-size:.95rem">
+          <div>Chirie (fără case)</div> <div>$${base}</div>
+          <div>Cu 1 casă</div>          <div>$${h1}</div>
+          <div>Cu 2 case</div>          <div>$${h2}</div>
+          <div>Cu 3 case</div>          <div>$${h3}</div>
+          <div>Cu 4 case</div>          <div>$${h4}</div>
+          <div>Cu hotel</div>           <div>$${hot}</div>
+        </div>
+        <div class="muted" style="margin-top:6px">
+          Cost pe casă: $${deed.houseCost} · Hotel = 4 case + $${deed.houseCost}
+        </div>
+      </div>
+    `;
+    }
+
     box.innerHTML = `
     <div class="title">${selectedIdx}. ${escapeHtml(t.name)}</div>
     <div class="meta">
-      ${t.t === "prop" ? `Preț: $${t.price} · Chirie: $${t.rent}` : ""}
+      ${t.t === "prop" ? `Preț: $${t.price}` : ""}
+      ${t.t === "rail" ? `Preț: $${t.price} · Chirie: $${t.rent}` : ""}
+      ${t.t === "util" ? `Preț: $${t.price} · Chirie: $${t.rent}` : ""}
       ${t.t === "tax" ? `Taxă: $${t.amount}` : ""}
       ${t.t === "go" ? `La trecere: +$200` : ""}
-      ${["rail", "util"].includes(t.t) ? `Preț: $${t.price} · Chirie: $${t.rent}` : ""}
-      ${owner ? `<br>Deținut de: <b style="color:${owner.color}">${escapeHtml(owner.nick)}</b>` : "<br>Proprietate liberă"}
+      ${owner ? `<br><b style="color:${owner.color}">Deținut de: ${escapeHtml(owner.nick)}</b>` : "<br>Proprietate liberă"}
     </div>
+    ${detailsHTML}
   `;
 }
 
@@ -287,7 +361,17 @@ function renderPortfolio() {
     wrap.innerHTML = state.players.map(p => {
         const list = sortProps(byOwner.get(p.id) || []);
         const deeds = list.length
-            ? `<div class="deeds">${list.map(deedCardHTML).join("")}</div>`
+            ? `<div class="deeds">${list.map(idx => {
+                const b = BOARD[idx];
+                return `<div class="deed" data-idx="${idx}">
+                    <div class="deed-head ${b.color || "black"}">${idx}. ${escapeHtml(b.name)}</div>
+                    <div class="deed-body">
+                      <div class="deed-row"><span>Preț</span><span>$${b.price ?? "-"}</span></div>
+                      <div class="deed-row"><span>Chirie</span><span>$${b.rent ?? "-"}</span></div>
+                      <small class="muted">Grup: ${b.color || "—"}</small>
+                    </div>
+                  </div>`;
+            }).join("")}</div>`
             : `<div class="muted">— fără proprietăți —</div>`;
 
         return `
@@ -327,7 +411,7 @@ async function createRoom() {
     };
     await upsertState();
     await openChannel();
-    startFallbackSync();        // important pe in-app browsers
+    startFallbackSync();
     enterGameUI(); renderAll();
     log(`Camera ${roomCode} creată de ${me.nick}. Invită 1–3 prieteni.`);
 }
@@ -350,7 +434,7 @@ async function joinRoom() {
         await commitState(`S-a alăturat ${me.nick}`);
     }
     await openChannel();
-    startFallbackSync();        // important
+    startFallbackSync();
     enterGameUI(); renderAll();
 }
 async function openChannel() {
@@ -364,7 +448,6 @@ async function openChannel() {
         presenceBox.textContent = names.length ? ("Online: " + names.join(", ")) : "";
     });
 
-    // realtime: state & dice
     channel.on("broadcast", { event: "state" }, ({ payload }) => { state = payload; renderAll(); });
     channel.on("broadcast", { event: "dice" }, ({ payload }) => { showDice(payload.d1, payload.d2); });
 
@@ -457,11 +540,9 @@ async function applyTile(p) {
         }
     }
 
-    // „Termină tura” vizibil mereu după mutare
     endBtn.classList.remove("hidden");
     buyBtn.classList.toggle("hidden", !actionPending);
 
-    // Fallback: fără acțiuni ⇒ auto-termină tura (mobil)
     if (!actionPending) {
         turnAutoTimer = setTimeout(async () => { await endTurn(true); }, 1300);
     }
