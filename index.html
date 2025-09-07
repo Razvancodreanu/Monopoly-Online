@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <title>Monopoly – Online & Local</title>
-    <link rel="stylesheet" href="./style.css?v=8" />
+    <link rel="stylesheet" href="./style.css?v=7" />
     <script src="https://unpkg.com/@supabase/supabase-js@2.46.1/dist/umd/supabase.js"></script>
 </head>
 <body>
@@ -69,21 +69,12 @@
                 </aside>
 
                 <section class="board">
-                    <!-- strat pentru zaruri -->
+                    <!-- strat pentru zaruri (deasupra tablei) -->
                     <div id="diceLayer" class="dice-layer hidden">
                         <div class="die" id="d1">•</div>
                         <div class="die" id="d2">•</div>
                     </div>
-
-                    <!-- viewport pentru zoom/pan -->
-                    <div id="boardViewport" class="board-viewport"></div>
-
-                    <!-- controale zoom -->
-                    <div class="zoomControls">
-                        <button id="zOut" title="Micșorează">−</button>
-                        <button id="zReset" title="Reset">100%</button>
-                        <button id="zIn" title="Mărește">+</button>
-                    </div>
+                    <!-- tabla se injectează din JS -->
                 </section>
 
                 <aside class="panel">
@@ -100,6 +91,6 @@
         </section>
     </main>
 
-    <script type="module" src="./app.js?v=8"></script>
+    <script type="module" src="./app.js?v=7"></script>
 </body>
 </html>
