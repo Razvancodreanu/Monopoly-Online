@@ -1,0 +1,46 @@
+﻿<!doctype html>
+<html lang="ro">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Monopoly Online – MVP v0.1</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script src="https://unpkg.com/@supabase/supabase-js@2.46.1/dist/umd/supabase.js"></script>
+</head>
+<body>
+    <main class="container">
+        <section id="lobby" class="card">
+            <h1>Monopoly Online</h1>
+            <div class="row"><label>Nickname</label><input id="nick" placeholder="ex: Razvan" maxlength="16" /></div>
+            <div class="row"><label>Cod cameră</label><input id="roomCode" placeholder="ex: AB12" maxlength="6" /></div>
+            <div class="btns">
+                <button id="createBtn">Creează cameră</button>
+                <button id="joinBtn" class="secondary">Intră</button>
+            </div>
+            <p class="hint">Trimite codul prietenilor (2–4 jucători). Totul merge direct din browser.</p>
+        </section>
+
+        <section id="game" class="hidden">
+            <div class="topbar">
+                <div>Cameră: <span id="codeLbl"></span> · Tura: <span id="turnLbl">-</span></div>
+                <div id="presence"></div>
+            </div>
+            <div class="layout">
+                <aside class="panel">
+                    <h3>Jucători</h3>
+                    <ul id="playersList"></ul>
+                    <div class="actions">
+                        <button id="rollBtn">Aruncă zarul 🎲</button>
+                        <button id="buyBtn" class="secondary hidden">Cumpără</button>
+                        <button id="endBtn" class="secondary hidden">Termină tura</button>
+                    </div>
+                    <div id="youAre"></div>
+                </aside>
+                <section class="board"><ol id="tiles" class="tiles"></ol></section>
+                <aside class="panel"><h3>Evenimente</h3><div id="log" class="log"></div></aside>
+            </div>
+        </section>
+    </main>
+    <script type="module" src="./app.js"></script>
+</body>
+</html>
