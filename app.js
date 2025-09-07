@@ -1,4 +1,4 @@
-﻿// ============= SUPABASE (online) =============
+﻿// ============= SUPABASE =============
 const SUPABASE_URL = "https://ndxjdmkeounxliifpbyw.supabase.co";
 const SUPABASE_ANON = "sb_publishable_7k4luMzyb2t3LNeHSF8WBQ_bLZB4KNc";
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
@@ -22,8 +22,10 @@ const localSetup = $("#localSetup");
 const localPlayersDiv = $("#localPlayers");
 const addLocalBtn = $("#addLocal");
 const startLocalBtn = $("#startLocalBtn");
+const diceLayer = $("#diceLayer");
+const d1El = $("#d1"), d2El = $("#d2");
 
-// create board container
+// board container
 const boardHost = document.createElement("div");
 boardHost.className = "board-inner";
 document.querySelector(".board").appendChild(boardHost);
@@ -35,7 +37,7 @@ rollBtn.onclick = rollDice;
 buyBtn.onclick = buyProperty;
 endBtn.onclick = endTurn;
 
-// local-mode UI
+// local mode UI
 localModeChk.onchange = () => {
     localSetup.style.display = localModeChk.checked ? "block" : "none";
     if (localModeChk.checked && localPlayersDiv.childElementCount === 0) seedLocalPlayers();
@@ -46,9 +48,9 @@ startLocalBtn.onclick = () => startLocalGame();
 // ============= GAME DATA ============
 const START_MONEY = 1500;
 const PLAYER_COLORS = ["#ff4d4f", "#a855f7", "#22c55e", "#3b82f6", "#f59e0b", "#f97316", "#e5e7eb", "#8b5e3c"];
-const DENOMS = [500, 100, 50, 20, 10, 5, 1]; // bancnote
+const DENOMS = [500, 100, 50, 20, 10, 5, 1];
 
-// Board (0..39) de la GO (dreapta jos) în sens trigonometric
+// board definition (GO -> CCW)
 const BOARD = [
     { t: "go", name: "GO" },
     { t: "prop", name: "Mediterranean Ave", price: 60, rent: 8, color: "brown" },
@@ -99,6 +101,7 @@ let me = null;
 let state = null; // {code, players[], turnIdx, props{}, started, log[]}
 let isLocal = false;
 let selectedIdx = null;
+let turnAutoTimer = null;   // fallback auto-end
 const deviceId = getOrCreateDeviceId();
 
 // ============= HELPERS ============
@@ -120,42 +123,25 @@ function escapeHtml(s) { return s.replace(/[&<>"']/g, m => ({ "&": "&amp;", "<":
 function ensurePlayerColors() { state.players.forEach((p, i) => { if (!p.color) p.color = PLAYER_COLORS[i % PLAYER_COLORS.length]; }); }
 
 // cash helpers
-function moneyBreakdown(amount) {
-    const out = []; let left = Math.max(0, Math.floor(amount || 0));
-    for (const d of DENOMS) { const n = Math.floor(left / d); if (n > 0) { out.push([d, n]); left -= n * d; } }
-    return out;
-}
-function billsHTML(amount) {
-    const br = moneyBreakdown(amount);
-    if (!br.length) return '<div class="muted">—</div>';
-    return `<div class="cash">${br.map(([d, n]) => `<div class="bill b${d}"><span class="val">${d}</span><span class="cnt">×${n}</span></div>`).join("")
-        }</div>`;
-}
+function moneyBreakdown(amount) { const out = []; let left = Math.max(0, Math.floor(amount || 0)); for (const d of DENOMS) { const n = Math.floor(left / d); if (n > 0) { out.push([d, n]); left -= n * d; } } return out; }
+function billsHTML(amount) { const br = moneyBreakdown(amount); if (!br.length) return '<div class="muted">—</div>'; return `<div class="cash">${br.map(([d, n]) => `<div class="bill b${d}"><span class="val">${d}</span><span class="cnt">×${n}</span></div>`).join("")}</div>`; }
 
 // deed helpers
-function colorClass(grp) {
-    return {
-        brown: "c-brown", lblue: "c-lblue", pink: "c-pink", orange: "c-orange",
-        red: "c-red", yellow: "c-yellow", green: "c-green", dblue: "c-dblue", black: "c-black"
-    }[grp] || "c-black";
-}
-function deedCardHTML(idx) {
-    const b = BOARD[idx];
-    const headCls = colorClass(b.color || "black");
-    const price = b.price ?? "-";
-    const rent = b.rent ?? "-";
-    return `
-    <div class="deed" data-idx="${idx}" title="Click: evidențiază pe tablă">
-      <div class="deed-head ${headCls}">${idx}. ${escapeHtml(b.name)}</div>
-      <div class="deed-body">
-        <div class="deed-row"><span>Preț</span><span>$${price}</span></div>
-        <div class="deed-row"><span>Chirie</span><span>$${rent}</span></div>
-        <small>Grup: ${b.color || "—"}</small>
-      </div>
-    </div>`;
+function colorClass(grp) { return { brown: "c-brown", lblue: "c-lblue", pink: "c-pink", orange: "c-orange", red: "c-red", yellow: "c-yellow", green: "c-green", dblue: "c-dblue", black: "c-black" }[grp] || "c-black"; }
+function deedCardHTML(idx) { const b = BOARD[idx]; return `<div class="deed" data-idx="${idx}" title="Click: evidențiază pe tablă"><div class="deed-head ${colorClass(b.color || "black")}">${idx}. ${escapeHtml(b.name)}</div><div class="deed-body"><div class="deed-row"><span>Preț</span><span>$${b.price ?? "-"}</span></div><div class="deed-row"><span>Chirie</span><span>$${b.rent ?? "-"}</span></div><small>Grup: ${b.color || "—"}</small></div></div>`; }
+
+// dice overlay
+function showDice(d1, d2) {
+    d1El.textContent = d1; d2El.textContent = d2;
+    diceLayer.classList.remove("hidden");
+    // re-trigger animation
+    d1El.style.animation = "none"; d2El.style.animation = "none";
+    void d1El.offsetWidth; void d2El.offsetWidth;
+    d1El.style.animation = ""; d2El.style.animation = "";
+    setTimeout(() => diceLayer.classList.add("hidden"), 1100);
 }
 
-// ============= LAYOUT (11x11) ============
+// ============= LAYOUT ============
 function layoutForIndex(i) {
     if (i === 0) return { row: 11, col: 11, side: "bottom", corner: true };
     if (i <= 9) return { row: 11, col: 11 - i, side: "bottom" };
@@ -178,51 +164,38 @@ function renderBoard() {
         el.style.gridRow = pos.row;
         el.style.gridColumn = pos.col;
 
-        // proprietăți – bandă colorată
         if (t.t === "prop") {
             const band = document.createElement("div");
             band.className = `band ${t.color || ""}`;
             el.appendChild(band);
         }
 
-        // owners + pawn
         const owners = document.createElement("div");
         owners.className = "owners";
         state?.players?.forEach(p => {
             if (p.bankrupt) return;
-            if (p.pos === i) {
-                const s = document.createElement("span");
-                s.className = "pawn"; s.textContent = p.pawn || "🔹";
-                owners.appendChild(s);
-            }
+            if (p.pos === i) { const s = document.createElement("span"); s.className = "pawn"; s.textContent = p.pawn || "🔹"; owners.appendChild(s); }
         });
 
-        // proprietar: badge + tint
         const ownerId = state?.props?.[i] || null;
         if (["prop", "rail", "util"].includes(t.t)) {
             const badge = document.createElement("div");
             badge.className = "badge";
             badge.style.position = "absolute";
-            badge.style.left = "4px";
-            badge.style.bottom = "4px";
+            badge.style.left = "4px"; badge.style.bottom = "4px";
             badge.textContent = ownerId ? "Deținut" : "Liber";
             el.appendChild(badge);
 
             if (ownerId) {
                 const owner = state.players.find(x => x.id === ownerId);
                 if (owner) {
-                    const fill = document.createElement("div");
-                    fill.className = "owner-fill";
-                    fill.style.background = owner.color;
-                    const ring = document.createElement("div");
-                    ring.className = "owner-ring";
-                    ring.style.boxShadow = `inset 0 0 0 3px ${owner.color}aa`;
+                    const fill = document.createElement("div"); fill.className = "owner-fill"; fill.style.background = owner.color;
+                    const ring = document.createElement("div"); ring.className = "owner-ring"; ring.style.boxShadow = `inset 0 0 0 3px ${owner.color}aa`;
                     el.appendChild(fill); el.appendChild(ring);
                 }
             }
         }
 
-        // text
         const content = document.createElement("div");
         content.className = "content";
         content.innerHTML = `
@@ -234,8 +207,6 @@ function renderBoard() {
     `;
         el.appendChild(content);
         el.appendChild(owners);
-
-        // inspector
         el.onclick = () => { selectedIdx = i; renderInspector(); renderBoard(); };
         boardHost.appendChild(el);
     }
@@ -278,7 +249,7 @@ function renderInspector() {
 
 function renderPortfolio() {
     const wrap = $("#portfolio");
-    const entries = Object.entries(state.props); // [idx, ownerId]
+    const entries = Object.entries(state.props);
     const byOwner = new Map();
     entries.forEach(([idx, ownerId]) => {
         if (!byOwner.has(ownerId)) byOwner.set(ownerId, []);
@@ -308,20 +279,20 @@ function renderPortfolio() {
     `;
     }).join("");
 
-    // click pe card -> selectează căsuța
     wrap.querySelectorAll(".deed").forEach(card => {
-        card.onclick = () => {
-            selectedIdx = Number(card.dataset.idx);
-            renderInspector(); renderBoard();
-        };
+        card.onclick = () => { selectedIdx = Number(card.dataset.idx); renderInspector(); renderBoard(); };
     });
 }
 
 function renderLog() { logEl.innerHTML = state.log.slice(-200).map(l => `<div>${l}</div>`).join(""); logEl.scrollTop = logEl.scrollHeight; }
 function renderAll() { ensurePlayerColors(); renderBoard(); renderPlayers(); renderInspector(); renderPortfolio(); renderLog(); updateActionButtons(); }
-function updateActionButtons() { if (isLocal) { rollBtn.disabled = false; return; } const myTurn = state.players[state.turnIdx]?.id === me?.id && !me?.bankrupt; rollBtn.disabled = !myTurn; }
+function updateActionButtons() {
+    if (isLocal) { rollBtn.disabled = false; return; }
+    const myTurn = state.players[state.turnIdx]?.id === me?.id && !me?.bankrupt;
+    rollBtn.disabled = !myTurn;
+}
 
-// ============= ONLINE ROOM FLOW ============
+// ============= ONLINE FLOW ============
 async function createRoom() {
     isLocal = false;
     const nick = ($("#nick").value || "").trim() || "Guest";
@@ -360,13 +331,28 @@ async function openChannel() {
     if (channel) await channel.unsubscribe();
     presenceBox.textContent = "";
     channel = supabase.channel(`room:${roomCode}`, { config: { presence: { key: me.id } } });
-    channel.on("presence", { event: "sync" }, () => { presenceBox.textContent = "Online: " + Object.values(channel.presenceState()).flatMap(x => x).map(m => m.nick).join(", "); });
+
+    // prezență
+    channel.on("presence", { event: "sync" }, () => {
+        presenceBox.textContent = "Online: " + Object.values(channel.presenceState()).flatMap(x => x).map(m => m.nick).join(", ");
+    });
+
+    // difuzare stare + zaruri (pentru vizual)
     channel.on("broadcast", { event: "state" }, ({ payload }) => { state = payload; renderAll(); });
+    channel.on("broadcast", { event: "dice" }, ({ payload }) => {
+        // arată zarurile tuturor jucătorilor
+        showDice(payload.d1, payload.d2);
+    });
+
     await channel.subscribe((st) => { if (st === "SUBSCRIBED") channel.track({ id: me.id, nick: me.nick }); });
 }
-function enterGameUI() { lobby.classList.add("hidden"); game.classList.remove("hidden"); modeLbl.textContent = isLocal ? "Mod local:" : "Cameră:"; codeLbl.textContent = isLocal ? "Același calculator" : roomCode; }
+function enterGameUI() {
+    lobby.classList.add("hidden"); game.classList.remove("hidden");
+    modeLbl.textContent = isLocal ? "Mod local:" : "Cameră:";
+    codeLbl.textContent = isLocal ? "Același dispozitiv" : roomCode;
+}
 
-// ============= LOCAL HOT-SEAT ============
+// ============= LOCAL (hot-seat) ============
 function seedLocalPlayers() { localPlayersDiv.innerHTML = ""; addLocalRow("Razvan"); addLocalRow("Oaspete"); }
 function addLocalRow(val = "") {
     const n = localPlayersDiv.childElementCount + 1;
@@ -407,35 +393,63 @@ function nextTurn() {
 function pickPawn() { const pawns = ["🔴", "🟣", "🟢", "🔵", "🟡", "🟠", "⚪", "🟤"]; return pawns[Math.floor(Math.random() * pawns.length)]; }
 
 async function rollDice() {
-    if (!isLocal) { const myTurn = currentPlayer().id === me?.id && !me?.bankrupt; if (!myTurn) return; }
+    if (!isLocal) {
+        const myTurn = state.players[state.turnIdx]?.id === me?.id && !me?.bankrupt;
+        if (!myTurn) return;
+    }
+
     const d1 = 1 + Math.floor(Math.random() * 6), d2 = 1 + Math.floor(Math.random() * 6), steps = d1 + d2;
+    // arătăm zarurile tuturor
+    showDice(d1, d2);
+    if (!isLocal && channel) channel.send({ type: "broadcast", event: "dice", payload: { d1, d2 } });
+
     const p = currentPlayer(); const before = p.pos;
     p.pos = (p.pos + steps) % 40;
     if (p.pos < before) { p.money += 200; log(`${p.nick} trece pe GO și primește $200`); }
     log(`${p.nick} a dat ${d1} + ${d2} = ${steps} și a ajuns pe ${p.pos}.`);
-    await applyTile(p); updateMeRef(); await commitState();
+
+    await applyTile(p);
+    updateMeRef();
+    await commitState();
 }
 
 async function applyTile(p) {
+    clearTimeout(turnAutoTimer);
+    let actionPending = false;
     const t = BOARD[p.pos]; if (!t) return;
 
-    if (t.t === "tax") { p.money -= t.amount; log(`${p.nick} plătește taxă $${t.amount}.`); checkBankrupt(p); endBtn.classList.remove("hidden"); }
-    else if (t.t === "gojail") { p.pos = 10; log(`${p.nick} merge direct la închisoare.`); endBtn.classList.remove("hidden"); }
+    if (t.t === "tax") { p.money -= t.amount; log(`${p.nick} plătește taxă $${t.amount}.`); checkBankrupt(p); }
+    else if (t.t === "gojail") { p.pos = 10; log(`${p.nick} merge direct la închisoare.`); }
     else if (["prop", "rail", "util"].includes(t.t)) {
         const idx = p.pos;
         const ownerId = state.props[idx] || null;
-        if (!ownerId) { buyBtn.classList.remove("hidden"); endBtn.classList.remove("hidden"); buyBtn.dataset.tile = String(idx); }
-        else if (ownerId !== p.id) {
+        if (!ownerId) {
+            buyBtn.classList.remove("hidden");
+            buyBtn.dataset.tile = String(idx);
+            actionPending = true;
+        } else if (ownerId !== p.id) {
             const owner = state.players.find(x => x.id === ownerId);
             const rent = t.rent ?? 10;
             if (owner && !owner.bankrupt) { p.money -= rent; owner.money += rent; log(`${p.nick} plătește chirie $${rent} către ${owner.nick}.`); checkBankrupt(p); }
-            endBtn.classList.remove("hidden");
-        } else { endBtn.classList.remove("hidden"); }
-    } else { endBtn.classList.remove("hidden"); }
+        }
+    }
+
+    // „Termină tura” vizibil mereu după mutare
+    endBtn.classList.remove("hidden");
+    buyBtn.classList.toggle("hidden", !actionPending);
+
+    // Fallback: dacă nu e nicio acțiune, auto-termină tura (ajută pe mobil)
+    if (!actionPending) {
+        turnAutoTimer = setTimeout(async () => {
+            await endTurn(true);
+        }, 1300);
+    }
 }
 
 async function buyProperty() {
-    if (!isLocal) { const myTurn = currentPlayer().id === me?.id && !me?.bankrupt; if (!myTurn) return; }
+    if (!isLocal) {
+        const myTurn = currentPlayer().id === me?.id && !me?.bankrupt; if (!myTurn) return;
+    }
     const idx = Number(buyBtn.dataset.tile || "-1"); if (idx < 0) return;
     const t = BOARD[idx]; if (!["prop", "rail", "util"].includes(t.t)) return;
     const ownerId = state.props[idx] || null; if (ownerId) { buyBtn.classList.add("hidden"); return; }
@@ -445,9 +459,13 @@ async function buyProperty() {
     buyBtn.classList.add("hidden"); updateMeRef(); await commitState();
 }
 
-async function endTurn() {
-    if (!isLocal) { const myTurn = currentPlayer().id === me?.id && !me?.bankrupt; if (!myTurn) return; }
-    buyBtn.classList.add("hidden"); endBtn.classList.add("hidden"); nextTurn(); await commitState(`${currentPlayer().nick} este la mutare.`);
+async function endTurn(auto = false) {
+    if (!isLocal && !auto) {
+        const myTurn = currentPlayer().id === me?.id && !me?.bankrupt; if (!myTurn) return;
+    }
+    clearTimeout(turnAutoTimer);
+    buyBtn.classList.add("hidden"); endBtn.classList.add("hidden");
+    nextTurn(); await commitState(`${currentPlayer().nick} este la mutare.`);
 }
 
 function checkBankrupt(p) {

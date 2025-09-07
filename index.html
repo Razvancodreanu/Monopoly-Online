@@ -2,9 +2,9 @@
 <html lang="ro">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <title>Monopoly – Online & Local</title>
-    <link rel="stylesheet" href="./style.css?v=5" />
+    <link rel="stylesheet" href="./style.css?v=6" />
     <script src="https://unpkg.com/@supabase/supabase-js@2.46.1/dist/umd/supabase.js"></script>
 </head>
 <body>
@@ -32,7 +32,7 @@
             <div class="row">
                 <label>
                     <input type="checkbox" id="localMode" />
-                    Joacă local (același calculator)
+                    Joacă local (același telefon/PC)
                 </label>
             </div>
 
@@ -60,7 +60,7 @@
                 <aside class="panel">
                     <h3>Jucători</h3>
                     <ul id="playersList"></ul>
-                    <div class="actions">
+                    <div class="actions actions-sticky">
                         <button id="rollBtn">Aruncă zarul 🎲</button>
                         <button id="buyBtn" class="secondary hidden">Cumpără</button>
                         <button id="endBtn" class="secondary hidden">Termină tura</button>
@@ -68,7 +68,14 @@
                     <div id="youAre"></div>
                 </aside>
 
-                <section class="board"><!-- tabla se injectează din JS --></section>
+                <section class="board">
+                    <!-- Strat pentru zaruri -->
+                    <div id="diceLayer" class="dice-layer hidden">
+                        <div class="die" id="d1">•</div>
+                        <div class="die" id="d2">•</div>
+                    </div>
+                    <!-- tabla se injectează din JS -->
+                </section>
 
                 <aside class="panel">
                     <h3>Detalii</h3>
@@ -84,6 +91,6 @@
         </section>
     </main>
 
-    <script type="module" src="./app.js?v=5"></script>
+    <script type="module" src="./app.js?v=6"></script>
 </body>
 </html>
