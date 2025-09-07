@@ -3,28 +3,61 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Monopoly Online – MVP v0.1</title>
-    <link rel="stylesheet" href="./style.css" />
+    <title>Monopoly Online – MVP v0.2 (Local mode)</title>
+    <link rel="stylesheet" href="./style.css?v=3" />
     <script src="https://unpkg.com/@supabase/supabase-js@2.46.1/dist/umd/supabase.js"></script>
 </head>
 <body>
     <main class="container">
         <section id="lobby" class="card">
-            <h1>Monopoly Online</h1>
-            <div class="row"><label>Nickname</label><input id="nick" placeholder="ex: Razvan" maxlength="16" /></div>
-            <div class="row"><label>Cod cameră</label><input id="roomCode" placeholder="ex: AB12" maxlength="6" /></div>
-            <div class="btns">
-                <button id="createBtn">Creează cameră</button>
-                <button id="joinBtn" class="secondary">Intră</button>
+            <h1>Monopoly</h1>
+
+            <div class="row">
+                <label>Nickname</label>
+                <input id="nick" placeholder="ex: Razvan" maxlength="16" />
             </div>
-            <p class="hint">Trimite codul prietenilor (2–4 jucători). Totul merge direct din browser.</p>
+
+            <div class="row">
+                <label>Cod cameră</label>
+                <input id="roomCode" placeholder="ex: AB12" maxlength="6" />
+            </div>
+
+            <div class="btns">
+                <button id="createBtn">Creează cameră (online)</button>
+                <button id="joinBtn" class="secondary">Intră (online)</button>
+            </div>
+
+            <hr style="border-color:#1d2735;margin:16px 0">
+
+            <div class="row">
+                <label>
+                    <input type="checkbox" id="localMode" />
+                    Joacă local (același calculator)
+                </label>
+            </div>
+
+            <div id="localSetup" class="card" style="margin-top:10px;display:none">
+                <h3>Jucători locali</h3>
+                <div id="localPlayers"></div>
+                <div class="btns" style="margin-top:10px">
+                    <button id="addLocal">+ Adaugă jucător</button>
+                    <button id="startLocalBtn" class="secondary">Start joc local</button>
+                </div>
+                <p class="hint">Sugestie: 2–6 jucători. Numele pot fi schimbate oricând înainte de start.</p>
+            </div>
+
+            <p class="hint">Poți juca fie online cu prieteni, fie local în fața aceluiași PC.</p>
         </section>
 
         <section id="game" class="hidden">
             <div class="topbar">
-                <div>Cameră: <span id="codeLbl"></span> · Tura: <span id="turnLbl">-</span></div>
+                <div>
+                    <span id="modeLbl">Cameră:</span>
+                    <span id="codeLbl"></span> · Tura: <span id="turnLbl">-</span>
+                </div>
                 <div id="presence"></div>
             </div>
+
             <div class="layout">
                 <aside class="panel">
                     <h3>Jucători</h3>
@@ -36,11 +69,19 @@
                     </div>
                     <div id="youAre"></div>
                 </aside>
-                <section class="board"><ol id="tiles" class="tiles"></ol></section>
-                <aside class="panel"><h3>Evenimente</h3><div id="log" class="log"></div></aside>
+
+                <section class="board">
+                    <!-- tabla se injectează din JS -->
+                </section>
+
+                <aside class="panel">
+                    <h3>Evenimente</h3>
+                    <div id="log" class="log"></div>
+                </aside>
             </div>
         </section>
     </main>
-    <script type="module" src="./app.js"></script>
+
+    <script type="module" src="./app.js?v=3"></script>
 </body>
 </html>
