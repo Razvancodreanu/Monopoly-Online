@@ -101,7 +101,8 @@ let me = null;
 let state = null; // {code, players[], turnIdx, props{}, started, log[]}
 let isLocal = false;
 let selectedIdx = null;
-let turnAutoTimer = null;   // fallback auto-end
+let turnAutoTimer = null;
+let syncInterval = null; // fallback polling
 const deviceId = getOrCreateDeviceId();
 
 // ============= HELPERS ============
@@ -134,11 +135,31 @@ function deedCardHTML(idx) { const b = BOARD[idx]; return `<div class="deed" dat
 function showDice(d1, d2) {
     d1El.textContent = d1; d2El.textContent = d2;
     diceLayer.classList.remove("hidden");
-    // re-trigger animation
+    // re-trigger anim (iOS/Safari)
     d1El.style.animation = "none"; d2El.style.animation = "none";
     void d1El.offsetWidth; void d2El.offsetWidth;
     d1El.style.animation = ""; d2El.style.animation = "";
-    setTimeout(() => diceLayer.classList.add("hidden"), 1100);
+    setTimeout(() => diceLayer.classList.add("hidden"), 1200);
+}
+
+// fallback polling (când Realtime e throttled)
+function startFallbackSync() {
+    clearInterval(syncInterval);
+    if (!roomCode) return;
+    syncInterval = setInterval(async () => {
+        try {
+            const { data } = await supabase.from("games").select("state").eq("code", roomCode).maybeSingle();
+            if (data && data.state) {
+                const serverState = data.state;
+                const localSig = JSON.stringify({ t: state.turnIdx, p: state.players?.length, r: Object.keys(state.props || {}).length });
+                const remoteSig = JSON.stringify({ t: serverState.turnIdx, p: serverState.players?.length, r: Object.keys(serverState.props || {}).length });
+                if (localSig !== remoteSig) {
+                    state = serverState;
+                    renderAll();
+                }
+            }
+        } catch (e) {/* noop */ }
+    }, 2500);
 }
 
 // ============= LAYOUT ============
@@ -304,7 +325,10 @@ async function createRoom() {
         players: [{ id: me.id, nick: me.nick, pawn: me.pawn, color: me.color, money: START_MONEY, pos: 0, bankrupt: false }],
         turnIdx: 0, props: {}, started: false, log: []
     };
-    await upsertState(); await openChannel(); enterGameUI(); renderAll();
+    await upsertState();
+    await openChannel();
+    startFallbackSync();        // important pe in-app browsers
+    enterGameUI(); renderAll();
     log(`Camera ${roomCode} creată de ${me.nick}. Invită 1–3 prieteni.`);
 }
 async function joinRoom() {
@@ -325,24 +349,24 @@ async function joinRoom() {
         state.players.push({ id: me.id, nick: me.nick, pawn: me.pawn, color, money: START_MONEY, pos: 0, bankrupt: false });
         await commitState(`S-a alăturat ${me.nick}`);
     }
-    await openChannel(); enterGameUI(); renderAll();
+    await openChannel();
+    startFallbackSync();        // important
+    enterGameUI(); renderAll();
 }
 async function openChannel() {
     if (channel) await channel.unsubscribe();
     presenceBox.textContent = "";
+
     channel = supabase.channel(`room:${roomCode}`, { config: { presence: { key: me.id } } });
 
-    // prezență
     channel.on("presence", { event: "sync" }, () => {
-        presenceBox.textContent = "Online: " + Object.values(channel.presenceState()).flatMap(x => x).map(m => m.nick).join(", ");
+        const names = Object.values(channel.presenceState()).flatMap(x => x).map(m => m.nick);
+        presenceBox.textContent = names.length ? ("Online: " + names.join(", ")) : "";
     });
 
-    // difuzare stare + zaruri (pentru vizual)
+    // realtime: state & dice
     channel.on("broadcast", { event: "state" }, ({ payload }) => { state = payload; renderAll(); });
-    channel.on("broadcast", { event: "dice" }, ({ payload }) => {
-        // arată zarurile tuturor jucătorilor
-        showDice(payload.d1, payload.d2);
-    });
+    channel.on("broadcast", { event: "dice" }, ({ payload }) => { showDice(payload.d1, payload.d2); });
 
     await channel.subscribe((st) => { if (st === "SUBSCRIBED") channel.track({ id: me.id, nick: me.nick }); });
 }
@@ -399,7 +423,6 @@ async function rollDice() {
     }
 
     const d1 = 1 + Math.floor(Math.random() * 6), d2 = 1 + Math.floor(Math.random() * 6), steps = d1 + d2;
-    // arătăm zarurile tuturor
     showDice(d1, d2);
     if (!isLocal && channel) channel.send({ type: "broadcast", event: "dice", payload: { d1, d2 } });
 
@@ -438,11 +461,9 @@ async function applyTile(p) {
     endBtn.classList.remove("hidden");
     buyBtn.classList.toggle("hidden", !actionPending);
 
-    // Fallback: dacă nu e nicio acțiune, auto-termină tura (ajută pe mobil)
+    // Fallback: fără acțiuni ⇒ auto-termină tura (mobil)
     if (!actionPending) {
-        turnAutoTimer = setTimeout(async () => {
-            await endTurn(true);
-        }, 1300);
+        turnAutoTimer = setTimeout(async () => { await endTurn(true); }, 1300);
     }
 }
 

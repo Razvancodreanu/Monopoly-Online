@@ -152,7 +152,7 @@ button {
     margin-top: 12px;
     flex-wrap: wrap
 }
-/* pe mobile, butoanele să fie mari și lipite jos */
+
 .actions-sticky {
     position: sticky;
     bottom: 0;
@@ -180,9 +180,10 @@ button {
     border: 2px solid var(--line);
     border-radius: 10px;
     position: relative;
+    z-index: 1;
 }
 
-/* stratul de zaruri */
+/* stratul de zaruri – deasupra tablei */
 .dice-layer {
     position: absolute;
     inset: 0;
@@ -190,7 +191,8 @@ button {
     gap: 16px;
     align-items: center;
     justify-content: center;
-    pointer-events: none
+    pointer-events: none;
+    z-index: 5;
 }
 
 .die {
@@ -250,12 +252,20 @@ button {
 
     .tile .name {
         font-size: .74rem;
-        line-height: 1.1
+        line-height: 1.1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 95%
     }
 
     .tile .price {
         font-size: .7rem;
-        color: var(--muted)
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 95%
     }
 
     .tile.prop .band {
@@ -638,16 +648,20 @@ button {
         gap: 8px
     }
 
+    .board {
+        padding: 6px
+    }
+
     .board-inner {
-        width: min(95vw, calc(100svh - 260px)); /* full screen */
+        width: min(96vw, calc(100svh - 260px));
     }
 
     .tile .name {
-        font-size: .66rem
+        font-size: .62rem
     }
 
     .tile .price {
-        font-size: .62rem
+        display: none
     }
 
     .log {
