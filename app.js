@@ -45,10 +45,10 @@ startLocalBtn.onclick = () => startLocalGame();
 
 // ============= GAME DATA ============
 const START_MONEY = 1500;
-// palette for player colors (used to tint owned tiles)
 const PLAYER_COLORS = ["#ff4d4f", "#a855f7", "#22c55e", "#3b82f6", "#f59e0b", "#f97316", "#e5e7eb", "#8b5e3c"];
+const DENOMS = [500, 100, 50, 20, 10, 5, 1]; // bancnote
 
-// Real Monopoly-like order (0..39), starting at GO (bottom-right) CCW
+// Board (0..39) de la GO (dreapta jos) în sens trigonometric
 const BOARD = [
     { t: "go", name: "GO" },
     { t: "prop", name: "Mediterranean Ave", price: 60, rent: 8, color: "brown" },
@@ -117,8 +117,42 @@ function log(msg) {
     state.log.push(`[${time}] ${msg}`); renderLog();
 }
 function escapeHtml(s) { return s.replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" }[m])); }
-function ensurePlayerColors() {
-    state.players.forEach((p, i) => { if (!p.color) p.color = PLAYER_COLORS[i % PLAYER_COLORS.length]; });
+function ensurePlayerColors() { state.players.forEach((p, i) => { if (!p.color) p.color = PLAYER_COLORS[i % PLAYER_COLORS.length]; }); }
+
+// cash helpers
+function moneyBreakdown(amount) {
+    const out = []; let left = Math.max(0, Math.floor(amount || 0));
+    for (const d of DENOMS) { const n = Math.floor(left / d); if (n > 0) { out.push([d, n]); left -= n * d; } }
+    return out;
+}
+function billsHTML(amount) {
+    const br = moneyBreakdown(amount);
+    if (!br.length) return '<div class="muted">—</div>';
+    return `<div class="cash">${br.map(([d, n]) => `<div class="bill b${d}"><span class="val">${d}</span><span class="cnt">×${n}</span></div>`).join("")
+        }</div>`;
+}
+
+// deed helpers
+function colorClass(grp) {
+    return {
+        brown: "c-brown", lblue: "c-lblue", pink: "c-pink", orange: "c-orange",
+        red: "c-red", yellow: "c-yellow", green: "c-green", dblue: "c-dblue", black: "c-black"
+    }[grp] || "c-black";
+}
+function deedCardHTML(idx) {
+    const b = BOARD[idx];
+    const headCls = colorClass(b.color || "black");
+    const price = b.price ?? "-";
+    const rent = b.rent ?? "-";
+    return `
+    <div class="deed" data-idx="${idx}" title="Click: evidențiază pe tablă">
+      <div class="deed-head ${headCls}">${idx}. ${escapeHtml(b.name)}</div>
+      <div class="deed-body">
+        <div class="deed-row"><span>Preț</span><span>$${price}</span></div>
+        <div class="deed-row"><span>Chirie</span><span>$${rent}</span></div>
+        <small>Grup: ${b.color || "—"}</small>
+      </div>
+    </div>`;
 }
 
 // ============= LAYOUT (11x11) ============
@@ -163,7 +197,7 @@ function renderBoard() {
             }
         });
 
-        // badge + tint dacă e deținut
+        // proprietar: badge + tint
         const ownerId = state?.props?.[i] || null;
         if (["prop", "rail", "util"].includes(t.t)) {
             const badge = document.createElement("div");
@@ -201,7 +235,7 @@ function renderBoard() {
         el.appendChild(content);
         el.appendChild(owners);
 
-        // select inspector
+        // inspector
         el.onclick = () => { selectedIdx = i; renderInspector(); renderBoard(); };
         boardHost.appendChild(el);
     }
@@ -213,7 +247,12 @@ function renderPlayers() {
         const turn = idx === state.turnIdx ? " (tura)" : "";
         const dead = p.bankrupt ? "❌" : "";
         const meCls = (isLocal ? idx === state.turnIdx : (p.id === me?.id)) ? "me" : "";
-        return `<li class="${meCls}"><span><span class="dot" style="background:${p.color}"></span> ${escapeHtml(p.nick)}${turn}</span><span>${dead} $${p.money}</span></li>`;
+        return `
+      <li class="${meCls}">
+        <div><span class="dot" style="background:${p.color}"></span> ${escapeHtml(p.nick)}${turn}</div>
+        <div>${dead} $${p.money}</div>
+        <div class="cashline">Cash: $${p.money}</div>
+      </li>`;
     }).join("");
     turnLbl.textContent = state.players[state.turnIdx]?.nick || "-";
     youAre.textContent = isLocal ? `Mod local (hot-seat).` : `Tu ești: ${me?.nick || ""}`;
@@ -246,29 +285,41 @@ function renderPortfolio() {
         byOwner.get(ownerId).push(+idx);
     });
 
+    const groupOrder = { brown: 1, lblue: 2, pink: 3, orange: 4, red: 5, yellow: 6, green: 7, dblue: 8, black: 9 };
+    const sortProps = (arr) => arr.sort((a, b) => {
+        const ga = groupOrder[BOARD[a].color || "black"] || 99;
+        const gb = groupOrder[BOARD[b].color || "black"] || 99;
+        return ga === gb ? a - b : ga - gb;
+    });
+
     wrap.innerHTML = state.players.map(p => {
-        const list = byOwner.get(p.id) || [];
-        const items = list.map(i => {
-            const b = BOARD[i];
-            const meta = ["prop", "rail", "util"].includes(b.t) ? `$${b.price} • Rent ${b.rent}` : "";
-            return `<li><span>${i}. ${escapeHtml(b.name)}</span> <span>${meta}</span></li>`;
-        }).join("") || `<li class="muted">— fără proprietăți —</li>`;
+        const list = sortProps(byOwner.get(p.id) || []);
+        const deeds = list.length
+            ? `<div class="deeds">${list.map(deedCardHTML).join("")}</div>`
+            : `<div class="muted">— fără proprietăți —</div>`;
+
         return `
       <div class="pf">
-        <div class="pf-h"><span class="dot" style="background:${p.color}"></span> ${escapeHtml(p.nick)} — ${list.length} proprietăți</div>
-        <ul>${items}</ul>
+        <div class="pf-h"><span class="dot" style="background:${p.color}"></span> ${escapeHtml(p.nick)}</div>
+        <div class="muted" style="margin-bottom:4px">Cash: $${p.money}</div>
+        ${billsHTML(p.money)}
+        ${deeds}
       </div>
     `;
     }).join("");
+
+    // click pe card -> selectează căsuța
+    wrap.querySelectorAll(".deed").forEach(card => {
+        card.onclick = () => {
+            selectedIdx = Number(card.dataset.idx);
+            renderInspector(); renderBoard();
+        };
+    });
 }
 
 function renderLog() { logEl.innerHTML = state.log.slice(-200).map(l => `<div>${l}</div>`).join(""); logEl.scrollTop = logEl.scrollHeight; }
 function renderAll() { ensurePlayerColors(); renderBoard(); renderPlayers(); renderInspector(); renderPortfolio(); renderLog(); updateActionButtons(); }
-function updateActionButtons() {
-    if (isLocal) { rollBtn.disabled = false; return; }
-    const myTurn = state.players[state.turnIdx]?.id === me?.id && !me?.bankrupt;
-    rollBtn.disabled = !myTurn;
-}
+function updateActionButtons() { if (isLocal) { rollBtn.disabled = false; return; } const myTurn = state.players[state.turnIdx]?.id === me?.id && !me?.bankrupt; rollBtn.disabled = !myTurn; }
 
 // ============= ONLINE ROOM FLOW ============
 async function createRoom() {
@@ -282,8 +333,7 @@ async function createRoom() {
         players: [{ id: me.id, nick: me.nick, pawn: me.pawn, color: me.color, money: START_MONEY, pos: 0, bankrupt: false }],
         turnIdx: 0, props: {}, started: false, log: []
     };
-    await upsertState(); await openChannel();
-    enterGameUI(); renderAll();
+    await upsertState(); await openChannel(); enterGameUI(); renderAll();
     log(`Camera ${roomCode} creată de ${me.nick}. Invită 1–3 prieteni.`);
 }
 async function joinRoom() {
@@ -314,18 +364,10 @@ async function openChannel() {
     channel.on("broadcast", { event: "state" }, ({ payload }) => { state = payload; renderAll(); });
     await channel.subscribe((st) => { if (st === "SUBSCRIBED") channel.track({ id: me.id, nick: me.nick }); });
 }
-function enterGameUI() {
-    lobby.classList.add("hidden"); game.classList.remove("hidden");
-    modeLbl.textContent = isLocal ? "Mod local:" : "Cameră:";
-    codeLbl.textContent = isLocal ? "Același calculator" : roomCode;
-}
+function enterGameUI() { lobby.classList.add("hidden"); game.classList.remove("hidden"); modeLbl.textContent = isLocal ? "Mod local:" : "Cameră:"; codeLbl.textContent = isLocal ? "Același calculator" : roomCode; }
 
 // ============= LOCAL HOT-SEAT ============
-function seedLocalPlayers() {
-    localPlayersDiv.innerHTML = "";
-    addLocalRow("Razvan");
-    addLocalRow("Oaspete");
-}
+function seedLocalPlayers() { localPlayersDiv.innerHTML = ""; addLocalRow("Razvan"); addLocalRow("Oaspete"); }
 function addLocalRow(val = "") {
     const n = localPlayersDiv.childElementCount + 1;
     const wrap = document.createElement("div");
@@ -365,9 +407,7 @@ function nextTurn() {
 function pickPawn() { const pawns = ["🔴", "🟣", "🟢", "🔵", "🟡", "🟠", "⚪", "🟤"]; return pawns[Math.floor(Math.random() * pawns.length)]; }
 
 async function rollDice() {
-    if (!isLocal) {
-        const myTurn = currentPlayer().id === me?.id && !me?.bankrupt; if (!myTurn) return;
-    }
+    if (!isLocal) { const myTurn = currentPlayer().id === me?.id && !me?.bankrupt; if (!myTurn) return; }
     const d1 = 1 + Math.floor(Math.random() * 6), d2 = 1 + Math.floor(Math.random() * 6), steps = d1 + d2;
     const p = currentPlayer(); const before = p.pos;
     p.pos = (p.pos + steps) % 40;
@@ -395,9 +435,7 @@ async function applyTile(p) {
 }
 
 async function buyProperty() {
-    if (!isLocal) {
-        const myTurn = currentPlayer().id === me?.id && !me?.bankrupt; if (!myTurn) return;
-    }
+    if (!isLocal) { const myTurn = currentPlayer().id === me?.id && !me?.bankrupt; if (!myTurn) return; }
     const idx = Number(buyBtn.dataset.tile || "-1"); if (idx < 0) return;
     const t = BOARD[idx]; if (!["prop", "rail", "util"].includes(t.t)) return;
     const ownerId = state.props[idx] || null; if (ownerId) { buyBtn.classList.add("hidden"); return; }
@@ -408,9 +446,7 @@ async function buyProperty() {
 }
 
 async function endTurn() {
-    if (!isLocal) {
-        const myTurn = currentPlayer().id === me?.id && !me?.bankrupt; if (!myTurn) return;
-    }
+    if (!isLocal) { const myTurn = currentPlayer().id === me?.id && !me?.bankrupt; if (!myTurn) return; }
     buyBtn.classList.add("hidden"); endBtn.classList.add("hidden"); nextTurn(); await commitState(`${currentPlayer().nick} este la mutare.`);
 }
 
@@ -426,10 +462,7 @@ function updateMeRef() { if (!isLocal) { const mine = state.players.find(x => x.
 // ============= SYNC & PERSIST ============
 async function commitState(extraLog = "") {
     if (extraLog) log(extraLog);
-    if (isLocal) {
-        localStorage.setItem("monopoly_local_state", JSON.stringify(state));
-        renderAll(); return;
-    }
+    if (isLocal) { localStorage.setItem("monopoly_local_state", JSON.stringify(state)); renderAll(); return; }
     channel?.send({ type: "broadcast", event: "state", payload: state });
     await upsertState(); renderAll();
 }

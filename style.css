@@ -105,7 +105,7 @@ button {
 
 .layout {
     display: grid;
-    grid-template-columns: 260px 1fr 280px;
+    grid-template-columns: 260px 1fr 320px;
     gap: 12px
 }
 
@@ -124,13 +124,14 @@ button {
 
     #playersList li {
         display: flex;
-        justify-content: space-between;
+        flex-direction: column;
+        gap: 2px;
         padding: 8px 10px;
         border-bottom: 1px dashed var(--line)
     }
 
         #playersList li.me {
-            background: rgba(73,166,255,.08);
+            outline: 2px solid var(--accent);
             border-radius: 8px
         }
 
@@ -157,7 +158,7 @@ button {
 }
 
 .board-inner {
-    width: min(82vh,82vw); /* aproape pătrat pe ecrane mari */
+    width: min(82vh,82vw);
     aspect-ratio: 1/1;
     display: grid;
     grid-template-columns: repeat(11,1fr);
@@ -175,7 +176,8 @@ button {
     align-items: center;
     justify-content: center;
     position: relative;
-    overflow: hidden
+    overflow: hidden;
+    border-radius: 10px
 }
 
     .tile .content {
@@ -230,7 +232,6 @@ button {
     left: 0
 }
 
-/* rotăm textul pentru laturi ca în joc */
 .side-left .content {
     transform: rotate(90deg)
 }
@@ -277,7 +278,7 @@ button {
 .log {
     font-family: ui-monospace,Menlo,Consolas,monospace;
     font-size: .9rem;
-    height: 480px;
+    height: 420px;
     overflow: auto;
     background: #0e141c;
     border: 1px solid #1d2735;
@@ -322,13 +323,14 @@ button {
 .band.dblue {
     background: var(--dblue)
 }
-/* === highlight proprietar pe hartă === */
+
+/* ===== ownership tint + selection ===== */
 .owner-fill {
     position: absolute;
     inset: 0;
     opacity: .18;
     pointer-events: none;
-    border-radius: 8px;
+    border-radius: 8px
 }
 
 .owner-ring {
@@ -336,16 +338,15 @@ button {
     inset: 0;
     box-shadow: inset 0 0 0 3px rgba(255,255,255,.0);
     border-radius: 8px;
-    pointer-events: none;
+    pointer-events: none
 }
 
-/* căsuță selectată din inspector */
 .tile.selected {
     outline: 2px solid var(--accent);
     outline-offset: -2px
 }
 
-/* inspector + portofolii */
+/* ===== inspector + portofolii ===== */
 .inspect {
     border: 1px solid #1d2735;
     border-radius: 10px;
@@ -409,7 +410,159 @@ button {
         font-size: .86rem
     }
 
-#playersList li.me {
-    outline: 2px solid var(--accent);
-    border-radius: 8px
+.muted {
+    color: var(--muted)
+}
+
+/* ===== cash bills ===== */
+.cash {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: 6px 0
+}
+
+.bill {
+    width: 56px;
+    height: 32px;
+    border: 2px solid #0005;
+    border-radius: 4px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    color: #111;
+    text-shadow: 0 1px 0 #fff8;
+    box-shadow: inset 0 0 0 2px #0002
+}
+
+    .bill .cnt {
+        position: absolute;
+        right: 4px;
+        bottom: 2px;
+        font-size: .72rem;
+        color: #111;
+        opacity: .9
+    }
+
+    .bill .val {
+        font-size: 1rem;
+        line-height: 1
+    }
+
+    .bill.b1 {
+        background: #ede7db
+    }
+
+    .bill.b5 {
+        background: #d6a3cf
+    }
+
+    .bill.b10 {
+        background: #e0cf56
+    }
+
+    .bill.b20 {
+        background: #5fcd5f
+    }
+
+    .bill.b50 {
+        background: #5d8bd6
+    }
+
+    .bill.b100 {
+        background: #9a884b
+    }
+
+    .bill.b500 {
+        background: #d27438
+    }
+
+#playersList li .cashline {
+    color: var(--muted);
+    font-size: .86rem;
+    margin-top: 2px
+}
+
+/* ===== deed cards (cărți de proprietate) ===== */
+.deeds {
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(180px,1fr));
+    gap: 10px
+}
+
+.deed {
+    background: #0f141c;
+    border: 1px solid #1d2735;
+    border-radius: 12px;
+    overflow: hidden
+}
+
+.deed-head {
+    padding: 8px 10px;
+    color: #0b0f14;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    text-align: center
+}
+
+.deed-body {
+    padding: 8px 10px;
+    color: var(--text);
+    font-size: .92rem
+}
+
+.deed-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0;
+    border-bottom: 1px dashed #223549
+}
+
+    .deed-row:last-child {
+        border-bottom: none
+    }
+
+.deed small {
+    color: var(--muted);
+    font-size: .8rem
+}
+
+.c-brown {
+    background: var(--brown)
+}
+
+.c-lblue {
+    background: var(--lblue)
+}
+
+.c-pink {
+    background: var(--pink)
+}
+
+.c-orange {
+    background: var(--orange)
+}
+
+.c-red {
+    background: var(--red)
+}
+
+.c-yellow {
+    background: var(--yellow)
+}
+
+.c-green {
+    background: var(--green)
+}
+
+.c-dblue {
+    background: var(--dblue)
+}
+
+.c-black {
+    background: #bdbdbd;
+    color: #111
 }
