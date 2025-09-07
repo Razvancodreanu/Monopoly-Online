@@ -4,10 +4,16 @@
     --text: #e8f0ff;
     --muted: #95a3b8;
     --accent: #49a6ff;
-    --ok: #35d07f;
-    --warn: #ffb020;
-    --bad: #ff5860;
     --tile: #182230;
+    --line: #223549;
+    --brown: #955436;
+    --lblue: #9ad3f4;
+    --pink: #d67ab1;
+    --orange: #f29f5c;
+    --red: #e05757;
+    --yellow: #ffd86b;
+    --green: #6cc27a;
+    --dblue: #2a4d9b;
 }
 
 * {
@@ -22,7 +28,7 @@ body {
 }
 
 .container {
-    max-width: 1100px;
+    max-width: 1200px;
     margin: 24px auto;
     padding: 0 16px
 }
@@ -120,7 +126,7 @@ button {
         display: flex;
         justify-content: space-between;
         padding: 8px 10px;
-        border-bottom: 1px dashed #223549
+        border-bottom: 1px dashed var(--line)
     }
 
         #playersList li.me {
@@ -145,32 +151,105 @@ button {
     background: var(--card);
     border: 1px solid #1d2735;
     border-radius: 14px;
-    padding: 12px
-}
-
-.tiles {
+    padding: 12px;
     display: grid;
-    grid-template-columns: repeat(10,1fr);
-    gap: 6px;
-    margin: 0;
-    padding: 0;
-    list-style: none
+    place-items: center
 }
 
-    .tiles li {
-        background: var(--tile);
-        min-height: 60px;
-        border: 1px solid #223549;
-        border-radius: 10px;
-        padding: 6px;
+.board-inner {
+    width: min(82vh,82vw); /* aproape pătrat pe ecrane mari */
+    aspect-ratio: 1/1;
+    display: grid;
+    grid-template-columns: repeat(11,1fr);
+    grid-template-rows: repeat(11,1fr);
+    background: #0f141c;
+    border: 2px solid var(--line);
+    border-radius: 10px;
+    position: relative;
+}
+
+.tile {
+    background: var(--tile);
+    border: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden
+}
+
+    .tile .content {
         display: flex;
         flex-direction: column;
-        gap: 6px
+        gap: 4px;
+        align-items: center;
+        justify-content: center;
+        padding: 6px;
+        text-align: center
     }
 
-.tile-name {
-    font-size: .82rem;
-    color: var(--muted)
+    .tile .name {
+        font-size: .74rem;
+        line-height: 1.1
+    }
+
+    .tile .price {
+        font-size: .7rem;
+        color: var(--muted)
+    }
+
+    .tile.prop .band {
+        position: absolute
+    }
+
+.side-bottom .band, .side-top .band {
+    height: 14px;
+    width: 100%;
+    left: 0
+}
+
+.side-left .band, .side-right .band {
+    width: 14px;
+    height: 100%;
+    top: 0
+}
+
+.side-bottom .band {
+    top: 0
+}
+
+.side-top .band {
+    bottom: 0
+}
+
+.side-left .band {
+    right: 0
+}
+
+.side-right .band {
+    left: 0
+}
+
+/* rotăm textul pentru laturi ca în joc */
+.side-left .content {
+    transform: rotate(90deg)
+}
+
+.side-right .content {
+    transform: rotate(-90deg)
+}
+
+.side-top .content {
+    transform: rotate(180deg)
+}
+
+.corner .content {
+    transform: none;
+    font-weight: 700
+}
+
+.corner .name {
+    font-size: .8rem
 }
 
 .badge {
@@ -184,8 +263,10 @@ button {
 }
 
 .owners {
+    position: absolute;
+    inset: auto 4px 4px auto;
     display: flex;
-    gap: 4px;
+    gap: 3px;
     flex-wrap: wrap
 }
 
@@ -196,7 +277,7 @@ button {
 .log {
     font-family: ui-monospace,Menlo,Consolas,monospace;
     font-size: .9rem;
-    height: 420px;
+    height: 480px;
     overflow: auto;
     background: #0e141c;
     border: 1px solid #1d2735;
@@ -207,4 +288,37 @@ button {
 .hint {
     color: var(--muted);
     margin-top: 8px
+}
+
+/* culorile grupurilor */
+.band.brown {
+    background: var(--brown)
+}
+
+.band.lblue {
+    background: var(--lblue)
+}
+
+.band.pink {
+    background: var(--pink)
+}
+
+.band.orange {
+    background: var(--orange)
+}
+
+.band.red {
+    background: var(--red)
+}
+
+.band.yellow {
+    background: var(--yellow)
+}
+
+.band.green {
+    background: var(--green)
+}
+
+.band.dblue {
+    background: var(--dblue)
 }
