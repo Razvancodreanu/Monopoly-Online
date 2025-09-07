@@ -322,3 +322,94 @@ button {
 .band.dblue {
     background: var(--dblue)
 }
+/* === highlight proprietar pe hartă === */
+.owner-fill {
+    position: absolute;
+    inset: 0;
+    opacity: .18;
+    pointer-events: none;
+    border-radius: 8px;
+}
+
+.owner-ring {
+    position: absolute;
+    inset: 0;
+    box-shadow: inset 0 0 0 3px rgba(255,255,255,.0);
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+/* căsuță selectată din inspector */
+.tile.selected {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px
+}
+
+/* inspector + portofolii */
+.inspect {
+    border: 1px solid #1d2735;
+    border-radius: 10px;
+    padding: 10px;
+    background: #0e141c;
+    min-height: 72px
+}
+
+    .inspect .title {
+        font-weight: 700
+    }
+
+    .inspect .meta {
+        color: var(--muted);
+        font-size: .9rem
+    }
+
+.portfolio .pf {
+    border: 1px solid #1d2735;
+    border-radius: 10px;
+    margin: 8px 0;
+    padding: 8px;
+    background: #0f141c
+}
+
+.pf-h {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px
+}
+
+.pf .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    display: inline-block;
+    border: 1px solid #0003
+}
+
+.pf ul {
+    list-style: none;
+    margin: 0;
+    padding: 0
+}
+
+.pf li {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px dashed #223549;
+    padding: 4px 0;
+    font-size: .92rem
+}
+
+    .pf li:last-child {
+        border-bottom: none
+    }
+
+    .pf li span {
+        color: var(--muted);
+        font-size: .86rem
+    }
+
+#playersList li.me {
+    outline: 2px solid var(--accent);
+    border-radius: 8px
+}

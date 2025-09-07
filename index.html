@@ -3,8 +3,8 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Monopoly Online – MVP v0.2 (Local mode)</title>
-    <link rel="stylesheet" href="./style.css?v=3" />
+    <title>Monopoly – Online & Local</title>
+    <link rel="stylesheet" href="./style.css?v=4" />
     <script src="https://unpkg.com/@supabase/supabase-js@2.46.1/dist/umd/supabase.js"></script>
 </head>
 <body>
@@ -43,10 +43,7 @@
                     <button id="addLocal">+ Adaugă jucător</button>
                     <button id="startLocalBtn" class="secondary">Start joc local</button>
                 </div>
-                <p class="hint">Sugestie: 2–6 jucători. Numele pot fi schimbate oricând înainte de start.</p>
             </div>
-
-            <p class="hint">Poți juca fie online cu prieteni, fie local în fața aceluiași PC.</p>
         </section>
 
         <section id="game" class="hidden">
@@ -70,18 +67,22 @@
                     <div id="youAre"></div>
                 </aside>
 
-                <section class="board">
-                    <!-- tabla se injectează din JS -->
-                </section>
+                <section class="board"><!-- tabla se injectează din JS --></section>
 
                 <aside class="panel">
-                    <h3>Evenimente</h3>
+                    <h3>Detalii</h3>
+                    <div id="inspector" class="inspect">Selectează o căsuță…</div>
+
+                    <h3 style="margin-top:12px">Portofolii</h3>
+                    <div id="portfolio" class="portfolio"></div>
+
+                    <h3 style="margin-top:12px">Evenimente</h3>
                     <div id="log" class="log"></div>
                 </aside>
             </div>
         </section>
     </main>
 
-    <script type="module" src="./app.js?v=3"></script>
+    <script type="module" src="./app.js?v=4"></script>
 </body>
 </html>

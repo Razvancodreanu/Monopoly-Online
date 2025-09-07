@@ -45,6 +45,8 @@ startLocalBtn.onclick = () => startLocalGame();
 
 // ============= GAME DATA ============
 const START_MONEY = 1500;
+// palette for player colors (used to tint owned tiles)
+const PLAYER_COLORS = ["#ff4d4f", "#a855f7", "#22c55e", "#3b82f6", "#f59e0b", "#f97316", "#e5e7eb", "#8b5e3c"];
 
 // Real Monopoly-like order (0..39), starting at GO (bottom-right) CCW
 const BOARD = [
@@ -95,7 +97,8 @@ let channel = null;
 let roomCode = "";
 let me = null;
 let state = null; // {code, players[], turnIdx, props{}, started, log[]}
-let isLocal = false; // <— hot-seat
+let isLocal = false;
+let selectedIdx = null;
 const deviceId = getOrCreateDeviceId();
 
 // ============= HELPERS ============
@@ -113,7 +116,10 @@ function log(msg) {
     const time = new Date().toLocaleTimeString();
     state.log.push(`[${time}] ${msg}`); renderLog();
 }
-function escapeHtml(s) { return s.replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", "/>": "&#x2F;", "\"": "&quot;", "'": "&#039;" }[m] || m)); }
+function escapeHtml(s) { return s.replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" }[m])); }
+function ensurePlayerColors() {
+    state.players.forEach((p, i) => { if (!p.color) p.color = PLAYER_COLORS[i % PLAYER_COLORS.length]; });
+}
 
 // ============= LAYOUT (11x11) ============
 function layoutForIndex(i) {
@@ -134,7 +140,7 @@ function renderBoard() {
         const t = BOARD[i];
         const pos = layoutForIndex(i);
         const el = document.createElement("div");
-        el.className = `tile side-${pos.side} ${pos.corner ? "corner" : ""} ${t.t === "prop" ? "prop" : ""}`;
+        el.className = `tile side-${pos.side} ${pos.corner ? "corner" : ""} ${t.t === "prop" ? "prop" : ""} ${selectedIdx === i ? "selected" : ""}`;
         el.style.gridRow = pos.row;
         el.style.gridColumn = pos.col;
 
@@ -157,9 +163,9 @@ function renderBoard() {
             }
         });
 
-        // badge proprietar
-        if (t.t === "prop") {
-            const ownerId = state?.props?.[i] || null;
+        // badge + tint dacă e deținut
+        const ownerId = state?.props?.[i] || null;
+        if (["prop", "rail", "util"].includes(t.t)) {
             const badge = document.createElement("div");
             badge.className = "badge";
             badge.style.position = "absolute";
@@ -167,6 +173,19 @@ function renderBoard() {
             badge.style.bottom = "4px";
             badge.textContent = ownerId ? "Deținut" : "Liber";
             el.appendChild(badge);
+
+            if (ownerId) {
+                const owner = state.players.find(x => x.id === ownerId);
+                if (owner) {
+                    const fill = document.createElement("div");
+                    fill.className = "owner-fill";
+                    fill.style.background = owner.color;
+                    const ring = document.createElement("div");
+                    ring.className = "owner-ring";
+                    ring.style.boxShadow = `inset 0 0 0 3px ${owner.color}aa`;
+                    el.appendChild(fill); el.appendChild(ring);
+                }
+            }
         }
 
         // text
@@ -181,6 +200,9 @@ function renderBoard() {
     `;
         el.appendChild(content);
         el.appendChild(owners);
+
+        // select inspector
+        el.onclick = () => { selectedIdx = i; renderInspector(); renderBoard(); };
         boardHost.appendChild(el);
     }
 }
@@ -190,16 +212,58 @@ function renderPlayers() {
     playersList.innerHTML = state.players.map((p, idx) => {
         const turn = idx === state.turnIdx ? " (tura)" : "";
         const dead = p.bankrupt ? "❌" : "";
-        return `<li class="${p.local ? 'me' : ''}"><span>${p.pawn || "🔹"} ${escapeHtml(p.nick)}${turn}</span><span>${dead} $${p.money}</span></li>`;
+        const meCls = (isLocal ? idx === state.turnIdx : (p.id === me?.id)) ? "me" : "";
+        return `<li class="${meCls}"><span><span class="dot" style="background:${p.color}"></span> ${escapeHtml(p.nick)}${turn}</span><span>${dead} $${p.money}</span></li>`;
     }).join("");
     turnLbl.textContent = state.players[state.turnIdx]?.nick || "-";
-    youAre.textContent = isLocal
-        ? `Mod local (hot-seat). Controlezi pe rând jucătorii.`
-        : `Tu ești: ${me?.pawn || "🔹"} ${me?.nick || ""}`;
-    presenceBox.textContent = isLocal ? "" : presenceBox.textContent;
+    youAre.textContent = isLocal ? `Mod local (hot-seat).` : `Tu ești: ${me?.nick || ""}`;
 }
+
+function renderInspector() {
+    const box = $("#inspector");
+    if (selectedIdx == null) { box.innerHTML = "Selectează o căsuță…"; return; }
+    const t = BOARD[selectedIdx];
+    const ownerId = state.props[selectedIdx] || null;
+    const owner = ownerId ? state.players.find(p => p.id === ownerId) : null;
+    box.innerHTML = `
+    <div class="title">${selectedIdx}. ${escapeHtml(t.name)}</div>
+    <div class="meta">
+      ${t.t === "prop" ? `Preț: $${t.price} · Chirie: $${t.rent}` : ""}
+      ${t.t === "tax" ? `Taxă: $${t.amount}` : ""}
+      ${t.t === "go" ? `La trecere: +$200` : ""}
+      ${["rail", "util"].includes(t.t) ? `Preț: $${t.price} · Chirie: $${t.rent}` : ""}
+      ${owner ? `<br>Deținut de: <b style="color:${owner.color}">${escapeHtml(owner.nick)}</b>` : "<br>Proprietate liberă"}
+    </div>
+  `;
+}
+
+function renderPortfolio() {
+    const wrap = $("#portfolio");
+    const entries = Object.entries(state.props); // [idx, ownerId]
+    const byOwner = new Map();
+    entries.forEach(([idx, ownerId]) => {
+        if (!byOwner.has(ownerId)) byOwner.set(ownerId, []);
+        byOwner.get(ownerId).push(+idx);
+    });
+
+    wrap.innerHTML = state.players.map(p => {
+        const list = byOwner.get(p.id) || [];
+        const items = list.map(i => {
+            const b = BOARD[i];
+            const meta = ["prop", "rail", "util"].includes(b.t) ? `$${b.price} • Rent ${b.rent}` : "";
+            return `<li><span>${i}. ${escapeHtml(b.name)}</span> <span>${meta}</span></li>`;
+        }).join("") || `<li class="muted">— fără proprietăți —</li>`;
+        return `
+      <div class="pf">
+        <div class="pf-h"><span class="dot" style="background:${p.color}"></span> ${escapeHtml(p.nick)} — ${list.length} proprietăți</div>
+        <ul>${items}</ul>
+      </div>
+    `;
+    }).join("");
+}
+
 function renderLog() { logEl.innerHTML = state.log.slice(-200).map(l => `<div>${l}</div>`).join(""); logEl.scrollTop = logEl.scrollHeight; }
-function renderAll() { renderBoard(); renderPlayers(); renderLog(); updateActionButtons(); }
+function renderAll() { ensurePlayerColors(); renderBoard(); renderPlayers(); renderInspector(); renderPortfolio(); renderLog(); updateActionButtons(); }
 function updateActionButtons() {
     if (isLocal) { rollBtn.disabled = false; return; }
     const myTurn = state.players[state.turnIdx]?.id === me?.id && !me?.bankrupt;
@@ -211,11 +275,11 @@ async function createRoom() {
     isLocal = false;
     const nick = ($("#nick").value || "").trim() || "Guest";
     roomCode = ($("#roomCode").value || "").trim().toUpperCase() || randCode();
-    me = { id: deviceId, nick, pawn: pickPawn() };
+    me = { id: deviceId, nick, pawn: pickPawn(), color: PLAYER_COLORS[0] };
 
     state = {
         code: roomCode,
-        players: [{ id: me.id, nick: me.nick, pawn: me.pawn, money: START_MONEY, pos: 0, bankrupt: false }],
+        players: [{ id: me.id, nick: me.nick, pawn: me.pawn, color: me.color, money: START_MONEY, pos: 0, bankrupt: false }],
         turnIdx: 0, props: {}, started: false, log: []
     };
     await upsertState(); await openChannel();
@@ -236,7 +300,8 @@ async function joinRoom() {
 
     if (!state.players.find(p => p.id === me.id)) {
         if (state.players.length >= 4) { alert("Camera e plină (max 4)"); return; }
-        state.players.push({ id: me.id, nick: me.nick, pawn: me.pawn, money: START_MONEY, pos: 0, bankrupt: false });
+        const color = PLAYER_COLORS[state.players.length % PLAYER_COLORS.length];
+        state.players.push({ id: me.id, nick: me.nick, pawn: me.pawn, color, money: START_MONEY, pos: 0, bankrupt: false });
         await commitState(`S-a alăturat ${me.nick}`);
     }
     await openChannel(); enterGameUI(); renderAll();
@@ -276,18 +341,16 @@ function addLocalRow(val = "") {
 function startLocalGame() {
     const names = [...localPlayersDiv.querySelectorAll(".lp")].map(i => i.value.trim()).filter(Boolean);
     if (names.length < 2) { alert("Minim 2 jucători."); return; }
-    isLocal = true; roomCode = "LOCAL"; me = null; // not used in gating
-    const pawns = ["🔴", "🟣", "🟢", "🔵", "🟡", "🟠", "⚪", "🟤"];
+    isLocal = true; roomCode = "LOCAL"; me = null;
     state = {
         code: roomCode,
         players: names.slice(0, 6).map((nick, idx) => ({
-            id: crypto.randomUUID(), local: true, nick, pawn: pawns[idx % pawns.length],
+            id: crypto.randomUUID(), local: true, nick, pawn: pickPawn(), color: PLAYER_COLORS[idx % PLAYER_COLORS.length],
             money: START_MONEY, pos: 0, bankrupt: false
         })),
         turnIdx: 0, props: {}, started: true, log: []
     };
-    channel = null; // no realtime
-    enterGameUI(); renderAll();
+    channel = null; enterGameUI(); renderAll();
     log(`Joc local pornit pentru ${state.players.length} jucători: ${names.join(", ")}.`);
 }
 
@@ -302,10 +365,8 @@ function nextTurn() {
 function pickPawn() { const pawns = ["🔴", "🟣", "🟢", "🔵", "🟡", "🟠", "⚪", "🟤"]; return pawns[Math.floor(Math.random() * pawns.length)]; }
 
 async function rollDice() {
-    // în local mode, nu blocăm butonul
     if (!isLocal) {
-        const myTurn = currentPlayer().id === me?.id && !me?.bankrupt;
-        if (!myTurn) return;
+        const myTurn = currentPlayer().id === me?.id && !me?.bankrupt; if (!myTurn) return;
     }
     const d1 = 1 + Math.floor(Math.random() * 6), d2 = 1 + Math.floor(Math.random() * 6), steps = d1 + d2;
     const p = currentPlayer(); const before = p.pos;
@@ -366,7 +427,6 @@ function updateMeRef() { if (!isLocal) { const mine = state.players.find(x => x.
 async function commitState(extraLog = "") {
     if (extraLog) log(extraLog);
     if (isLocal) {
-        // offline – doar redraw (poți salva în localStorage dacă vrei)
         localStorage.setItem("monopoly_local_state", JSON.stringify(state));
         renderAll(); return;
     }
