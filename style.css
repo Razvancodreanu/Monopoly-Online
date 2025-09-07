@@ -160,6 +160,7 @@ button {
     padding-top: 8px
 }
 
+/* ===== BOARD ===== */
 .board {
     background: var(--card);
     border: 1px solid #1d2735;
@@ -167,11 +168,21 @@ button {
     padding: 12px;
     display: grid;
     place-items: center;
-    position: relative
+    position: relative;
+    overflow: hidden
+}
+
+.board-viewport {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    touch-action: none
 }
 
 .board-inner {
-    width: min(82vh,82vw);
+    width: min(86vh,86vw);
     aspect-ratio: 1/1;
     display: grid;
     grid-template-columns: repeat(11,1fr);
@@ -180,10 +191,12 @@ button {
     border: 2px solid var(--line);
     border-radius: 10px;
     position: relative;
+    transform: translate(var(--tx,0px), var(--ty,0px)) scale(var(--scale,1));
+    transform-origin: center center;
     z-index: 1;
 }
 
-/* stratul de zaruri – deasupra tablei */
+/* zaruri peste tablă */
 .dice-layer {
     position: absolute;
     inset: 0;
@@ -192,7 +205,7 @@ button {
     align-items: center;
     justify-content: center;
     pointer-events: none;
-    z-index: 5;
+    z-index: 5
 }
 
 .die {
@@ -229,6 +242,30 @@ button {
     }
 }
 
+/* zoom controls */
+.zoomControls {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    display: flex;
+    gap: 6px;
+    z-index: 6;
+    background: #0f141cbf;
+    border: 1px solid #1d2735;
+    border-radius: 10px;
+    padding: 6px;
+}
+
+    .zoomControls button {
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid #1d2735;
+        background: #162233;
+        color: #e8f0ff;
+        font-weight: 800;
+        min-width: 44px
+    }
+
 .tile {
     background: var(--tile);
     border: 1px solid var(--line);
@@ -243,16 +280,16 @@ button {
     .tile .content {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 2px;
         align-items: center;
         justify-content: center;
-        padding: 6px;
+        padding: 5px;
         text-align: center
     }
 
     .tile .name {
-        font-size: .74rem;
-        line-height: 1.1;
+        font-size: clamp(.56rem, .72vw, .82rem);
+        line-height: 1.05;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -300,12 +337,11 @@ button {
     left: 0
 }
 
-.side-left .content {
-    transform: rotate(90deg)
-}
-
-.side-right .content {
-    transform: rotate(-90deg)
+/* lizibilitate: left/right în coloană verticală (fără rotate blur) */
+.side-left .content, .side-right .content {
+    transform: none;
+    writing-mode: vertical-rl;
+    text-orientation: mixed
 }
 
 .side-top .content {
@@ -318,9 +354,10 @@ button {
 }
 
 .corner .name {
-    font-size: .8rem
+    font-size: clamp(.62rem, .8vw, .9rem)
 }
 
+/* elemente auxiliare */
 .badge {
     display: inline-block;
     padding: 2px 8px;
@@ -343,56 +380,6 @@ button {
     font-size: 1rem
 }
 
-.log {
-    font-family: ui-monospace,Menlo,Consolas,monospace;
-    font-size: .95rem;
-    height: 420px;
-    overflow: auto;
-    background: #0e141c;
-    border: 1px solid #1d2735;
-    border-radius: 10px;
-    padding: 8px
-}
-
-.hint {
-    color: var(--muted);
-    margin-top: 8px
-}
-
-/* culorile grupurilor */
-.band.brown {
-    background: var(--brown)
-}
-
-.band.lblue {
-    background: var(--lblue)
-}
-
-.band.pink {
-    background: var(--pink)
-}
-
-.band.orange {
-    background: var(--orange)
-}
-
-.band.red {
-    background: var(--red)
-}
-
-.band.yellow {
-    background: var(--yellow)
-}
-
-.band.green {
-    background: var(--green)
-}
-
-.band.dblue {
-    background: var(--dblue)
-}
-
-/* ownership tint + selection */
 .owner-fill {
     position: absolute;
     inset: 0;
@@ -414,7 +401,18 @@ button {
     outline-offset: -2px
 }
 
-/* inspector + portofolii */
+/* info panouri */
+.log {
+    font-family: ui-monospace,Menlo,Consolas,monospace;
+    font-size: .95rem;
+    height: 420px;
+    overflow: auto;
+    background: #0e141c;
+    border: 1px solid #1d2735;
+    border-radius: 10px;
+    padding: 8px
+}
+
 .inspect {
     border: 1px solid #1d2735;
     border-radius: 10px;
@@ -432,6 +430,7 @@ button {
         font-size: .9rem
     }
 
+/* portofolii + bancnote */
 .portfolio .pf {
     border: 1px solid #1d2735;
     border-radius: 10px;
@@ -482,7 +481,6 @@ button {
     color: var(--muted)
 }
 
-/* cash bills */
 .cash {
     display: flex;
     gap: 6px;
@@ -547,92 +545,37 @@ button {
         background: #d27438
     }
 
-#playersList li .cashline {
-    color: var(--muted);
-    font-size: .86rem;
-    margin-top: 2px
-}
-
-/* deed cards */
-.deeds {
-    display: grid;
-    grid-template-columns: repeat(auto-fill,minmax(180px,1fr));
-    gap: 10px
-}
-
-.deed {
-    background: #0f141c;
-    border: 1px solid #1d2735;
-    border-radius: 12px;
-    overflow: hidden
-}
-
-.deed-head {
-    padding: 8px 10px;
-    color: #0b0f14;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: .4px;
-    text-align: center
-}
-
-.deed-body {
-    padding: 8px 10px;
-    color: var(--text);
-    font-size: .92rem
-}
-
-.deed-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 2px 0;
-    border-bottom: 1px dashed #223549
-}
-
-    .deed-row:last-child {
-        border-bottom: none
-    }
-
-.deed small {
-    color: var(--muted);
-    font-size: .8rem
-}
-
-.c-brown {
+/* culorile grupurilor */
+.band.brown {
     background: var(--brown)
 }
 
-.c-lblue {
+.band.lblue {
     background: var(--lblue)
 }
 
-.c-pink {
+.band.pink {
     background: var(--pink)
 }
 
-.c-orange {
+.band.orange {
     background: var(--orange)
 }
 
-.c-red {
+.band.red {
     background: var(--red)
 }
 
-.c-yellow {
+.band.yellow {
     background: var(--yellow)
 }
 
-.c-green {
+.band.green {
     background: var(--green)
 }
 
-.c-dblue {
+.band.dblue {
     background: var(--dblue)
-}
-
-.c-black {
-    background: #bdbdbd;
-    color: #111
 }
 
 /* ====== MOBILE ====== */
@@ -656,11 +599,11 @@ button {
         width: min(96vw, calc(100svh - 260px));
     }
 
-    .tile .name {
-        font-size: .62rem
+    .tile .price {
+        display: none
     }
 
-    .tile .price {
+    .badge {
         display: none
     }
 

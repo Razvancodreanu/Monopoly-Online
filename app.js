@@ -25,10 +25,14 @@ const startLocalBtn = $("#startLocalBtn");
 const diceLayer = $("#diceLayer");
 const d1El = $("#d1"), d2El = $("#d2");
 
-// board container
+// zoom controls
+const zInBtn = $("#zIn"), zOutBtn = $("#zOut"), zResetBtn = $("#zReset");
+
+// viewport & board
+const viewportEl = $("#boardViewport");
 const boardHost = document.createElement("div");
 boardHost.className = "board-inner";
-document.querySelector(".board").appendChild(boardHost);
+viewportEl.appendChild(boardHost);
 
 // lobby actions
 $("#createBtn").onclick = createRoom;
@@ -105,6 +109,11 @@ let turnAutoTimer = null;
 let syncInterval = null; // fallback polling
 const deviceId = getOrCreateDeviceId();
 
+// zoom state
+let scale = 1, tx = 0, ty = 0;
+let pointers = new Map();
+let lastDist = 0, isPanning = false, panStart = { x: 0, y: 0 };
+
 // ============= HELPERS ============
 function getOrCreateDeviceId() {
     const k = "monopoly_device_id";
@@ -123,11 +132,25 @@ function log(msg) {
 function escapeHtml(s) { return s.replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" }[m])); }
 function ensurePlayerColors() { state.players.forEach((p, i) => { if (!p.color) p.color = PLAYER_COLORS[i % PLAYER_COLORS.length]; }); }
 
+// abreviere pentru display (full în inspector)
+function displayName(name) {
+    return (name || "")
+        .replace(/Avenue/gi, "Ave")
+        .replace(/Railroad/gi, "Rail")
+        .replace(/Company/gi, "Co.")
+        .replace(/Water Works/gi, "Water")
+        .replace(/Electric Company/gi, "Electric")
+        .replace(/Jail \/ Just Visiting/i, "Jail")
+        .replace(/Community Chest/i, "Chest")
+        .replace(/Free Parking/i, "Free")
+        .slice(0, 16);
+}
+
 // cash helpers
+const DENOMS = [500, 100, 50, 20, 10, 5, 1];
 function moneyBreakdown(amount) { const out = []; let left = Math.max(0, Math.floor(amount || 0)); for (const d of DENOMS) { const n = Math.floor(left / d); if (n > 0) { out.push([d, n]); left -= n * d; } } return out; }
 function billsHTML(amount) { const br = moneyBreakdown(amount); if (!br.length) return '<div class="muted">—</div>'; return `<div class="cash">${br.map(([d, n]) => `<div class="bill b${d}"><span class="val">${d}</span><span class="cnt">×${n}</span></div>`).join("")}</div>`; }
 
-// deed helpers
 function colorClass(grp) { return { brown: "c-brown", lblue: "c-lblue", pink: "c-pink", orange: "c-orange", red: "c-red", yellow: "c-yellow", green: "c-green", dblue: "c-dblue", black: "c-black" }[grp] || "c-black"; }
 function deedCardHTML(idx) { const b = BOARD[idx]; return `<div class="deed" data-idx="${idx}" title="Click: evidențiază pe tablă"><div class="deed-head ${colorClass(b.color || "black")}">${idx}. ${escapeHtml(b.name)}</div><div class="deed-body"><div class="deed-row"><span>Preț</span><span>$${b.price ?? "-"}</span></div><div class="deed-row"><span>Chirie</span><span>$${b.rent ?? "-"}</span></div><small>Grup: ${b.color || "—"}</small></div></div>`; }
 
@@ -135,14 +158,13 @@ function deedCardHTML(idx) { const b = BOARD[idx]; return `<div class="deed" dat
 function showDice(d1, d2) {
     d1El.textContent = d1; d2El.textContent = d2;
     diceLayer.classList.remove("hidden");
-    // re-trigger anim (iOS/Safari)
     d1El.style.animation = "none"; d2El.style.animation = "none";
     void d1El.offsetWidth; void d2El.offsetWidth;
     d1El.style.animation = ""; d2El.style.animation = "";
     setTimeout(() => diceLayer.classList.add("hidden"), 1200);
 }
 
-// fallback polling (când Realtime e throttled)
+// fallback polling
 function startFallbackSync() {
     clearInterval(syncInterval);
     if (!roomCode) return;
@@ -153,12 +175,9 @@ function startFallbackSync() {
                 const serverState = data.state;
                 const localSig = JSON.stringify({ t: state.turnIdx, p: state.players?.length, r: Object.keys(state.props || {}).length });
                 const remoteSig = JSON.stringify({ t: serverState.turnIdx, p: serverState.players?.length, r: Object.keys(serverState.props || {}).length });
-                if (localSig !== remoteSig) {
-                    state = serverState;
-                    renderAll();
-                }
+                if (localSig !== remoteSig) { state = serverState; renderAll(); }
             }
-        } catch (e) {/* noop */ }
+        } catch (e) { }
     }, 2500);
 }
 
@@ -220,7 +239,7 @@ function renderBoard() {
         const content = document.createElement("div");
         content.className = "content";
         content.innerHTML = `
-      <div class="name">${i}. ${escapeHtml(t.name)}</div>
+      <div class="name">${i}. ${escapeHtml(displayName(t.name))}</div>
       ${t.t === "prop" ? `<div class="price">$${t.price} • Rent ${t.rent}</div>` : ""}
       ${t.t === "tax" ? `<div class="price">Taxă $${t.amount}</div>` : ""}
       ${t.t === "go" ? `<div class="price">+200 la trecere</div>` : ""}
@@ -327,7 +346,7 @@ async function createRoom() {
     };
     await upsertState();
     await openChannel();
-    startFallbackSync();        // important pe in-app browsers
+    startFallbackSync();
     enterGameUI(); renderAll();
     log(`Camera ${roomCode} creată de ${me.nick}. Invită 1–3 prieteni.`);
 }
@@ -350,7 +369,7 @@ async function joinRoom() {
         await commitState(`S-a alăturat ${me.nick}`);
     }
     await openChannel();
-    startFallbackSync();        // important
+    startFallbackSync();
     enterGameUI(); renderAll();
 }
 async function openChannel() {
@@ -364,7 +383,6 @@ async function openChannel() {
         presenceBox.textContent = names.length ? ("Online: " + names.join(", ")) : "";
     });
 
-    // realtime: state & dice
     channel.on("broadcast", { event: "state" }, ({ payload }) => { state = payload; renderAll(); });
     channel.on("broadcast", { event: "dice" }, ({ payload }) => { showDice(payload.d1, payload.d2); });
 
@@ -457,11 +475,9 @@ async function applyTile(p) {
         }
     }
 
-    // „Termină tura” vizibil mereu după mutare
     endBtn.classList.remove("hidden");
     buyBtn.classList.toggle("hidden", !actionPending);
 
-    // Fallback: fără acțiuni ⇒ auto-termină tura (mobil)
     if (!actionPending) {
         turnAutoTimer = setTimeout(async () => { await endTurn(true); }, 1300);
     }
@@ -506,3 +522,46 @@ async function commitState(extraLog = "") {
     await upsertState(); renderAll();
 }
 async function upsertState() { return supabase.from("games").upsert({ code: state.code, state }); }
+
+// ============= ZOOM & PAN =============
+function applyTransform() {
+    boardHost.style.setProperty('--scale', String(scale));
+    boardHost.style.setProperty('--tx', `${tx}px`);
+    boardHost.style.setProperty('--ty', `${ty}px`);
+}
+zInBtn.onclick = () => { scale = Math.min(2.2, scale * 1.15); applyTransform(); zResetBtn.textContent = `${Math.round(scale * 100)}%`; };
+zOutBtn.onclick = () => { scale = Math.max(0.8, scale / 1.15); applyTransform(); zResetBtn.textContent = `${Math.round(scale * 100)}%`; };
+zResetBtn.onclick = () => { scale = 1; tx = 0; ty = 0; applyTransform(); zResetBtn.textContent = "100%"; };
+
+// pointer events (drag + pinch)
+viewportEl.onpointerdown = (e) => {
+    viewportEl.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 1) { isPanning = true; panStart.x = e.clientX - tx; panStart.y = e.clientY - ty; }
+    if (pointers.size === 2) {
+        const [a, b] = [...pointers.values()];
+        lastDist = Math.hypot(a.x - b.x, a.y - b.y);
+    }
+};
+viewportEl.onpointermove = (e) => {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 2) {
+        const [a, b] = [...pointers.values()];
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        const delta = d / (lastDist || d);
+        lastDist = d;
+        scale = Math.min(2.2, Math.max(0.8, scale * delta));
+        zResetBtn.textContent = `${Math.round(scale * 100)}%`;
+        applyTransform();
+    } else if (isPanning) {
+        tx = e.clientX - panStart.x;
+        ty = e.clientY - panStart.y;
+        applyTransform();
+    }
+};
+viewportEl.onpointerup = viewportEl.onpointercancel = (e) => {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) lastDist = 0;
+    if (pointers.size === 0) isPanning = false;
+};
